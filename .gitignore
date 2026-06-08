@@ -42,3 +42,6 @@ Thumbs.db
 
 # ===== Docker =====
 docker-compose.override.yml
+
+# ===== Working context (not for public repo) =====
+docs/
