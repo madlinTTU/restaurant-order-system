@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="2026-06-08-10-04-create-order-items" author="mark">
+        <createTable tableName="order_items">
+            <column name="uuid" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="order_uuid" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_order_items_order"
+                             references="orders(uuid)"/>
+            </column>
+            <column name="menu_item_uuid" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_order_items_menu_item"
+                             references="menu_items(uuid)"/>
+            </column>
+            <column name="quantity" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="unit_price" type="NUMERIC(10,2)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

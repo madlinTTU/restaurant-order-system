@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/migrations/2026-06-08-10-00-create-users.xml
+      relativeToChangelogFile: false
+  - include:
+      file: db/changelog/migrations/2026-06-08-10-01-create-menu-categories.xml
+      relativeToChangelogFile: false
+  - include:
+      file: db/changelog/migrations/2026-06-08-10-02-create-menu-items.xml
+      relativeToChangelogFile: false
+  - include:
+      file: db/changelog/migrations/2026-06-08-10-03-create-orders.xml
+      relativeToChangelogFile: false
+  - include:
+      file: db/changelog/migrations/2026-06-08-10-04-create-order-items.xml
+      relativeToChangelogFile: false
+  - include:
+      file: db/changelog/migrations/2026-06-08-10-05-create-order-events.xml
+      relativeToChangelogFile: false
