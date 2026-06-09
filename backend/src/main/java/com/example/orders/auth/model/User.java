@@ -28,10 +28,10 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
-    @Column(name = "created_by", nullable = false)
+    @Column(name = "created_by", nullable = false, updatable = false)
     private UUID createdBy;
 
     @Column(name = "modified_at", nullable = false)
