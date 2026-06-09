@@ -1,35 +1,45 @@
-package com.example.orders.auth.model;
+package com.example.orders.menu.model;
 
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "users")
+@Table(name = "menu_items")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class MenuItem {
 
     @Id
     @Column(name = "uuid")
     private UUID id;
 
-    @Column(nullable = false, unique = true)
-    private String email;
+    @ManyToOne
+    @JoinColumn(name = "category_uuid", nullable = false)
+    private MenuCategory category;
 
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
-
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role;
+    private String name;
+
+    @Column
+    private String description;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal price;
+
+    @Column(name = "image_url")
+    private String imageUrl;
+
+    @Column(nullable = false)
+    private boolean available = true;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt = OffsetDateTime.now();
+    private OffsetDateTime createdAt;
 
     @Column(name = "created_by", nullable = false, updatable = false)
     private UUID createdBy;
@@ -47,11 +57,13 @@ public class User {
     @PrePersist
     void prePersist() {
         if (id == null) id = UUID.randomUUID();
-        if (role == null) role = Role.CUSTOMER;
         if (createdAt == null) createdAt = OffsetDateTime.now();
-        if (createdBy == null) createdBy = id;
         if (modifiedAt == null) modifiedAt = OffsetDateTime.now();
-        if (modifiedBy == null) modifiedBy = id;
         if (version == null) version = 0L;
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        modifiedAt = OffsetDateTime.now();
     }
 }
