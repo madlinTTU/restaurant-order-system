@@ -1,6 +1,7 @@
 package com.example.orders.menu.service;
 
 import com.example.orders.exception.ResourceNotFoundException;
+import com.example.orders.menu.dto.ImageUploadUrlResponse;
 import com.example.orders.menu.dto.MenuItemRequest;
 import com.example.orders.menu.dto.MenuItemResponse;
 import com.example.orders.menu.mapper.MenuItemMapper;
@@ -8,6 +9,7 @@ import com.example.orders.menu.model.MenuCategory;
 import com.example.orders.menu.model.MenuItem;
 import com.example.orders.menu.repository.MenuCategoryRepository;
 import com.example.orders.menu.repository.MenuItemRepository;
+import com.example.orders.storage.StorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -26,6 +28,7 @@ public class MenuItemService {
     private final MenuItemRepository itemRepository;
     private final MenuCategoryRepository categoryRepository;
     private final MenuItemMapper itemMapper;
+    private final StorageService storageService;
 
     @Cacheable("menuItems")
     public List<MenuItemResponse> getAll() {
@@ -74,6 +77,23 @@ public class MenuItemService {
             throw new ResourceNotFoundException("Menu item not found: " + id);
         }
         itemRepository.deleteById(id);
+    }
+
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "menuItems", allEntries = true),
+            @CacheEvict(value = "menuItem", key = "#id")
+    })
+    public ImageUploadUrlResponse generateImageUploadUrl(UUID id) {
+        MenuItem item = itemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + id));
+
+        String key = storageService.generateKey(id);
+        String publicUrl = storageService.buildPublicUrl(key);
+        String uploadUrl = storageService.generatePresignedUploadUrl(key);
+
+        item.setImageUrl(publicUrl);
+        return new ImageUploadUrlResponse(uploadUrl);
     }
 
     private MenuCategory findCategory(UUID categoryId) {
