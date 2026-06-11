@@ -1,5 +1,6 @@
 package com.example.orders.menu.controller;
 
+import com.example.orders.menu.dto.ImageUploadUrlResponse;
 import com.example.orders.menu.dto.MenuItemRequest;
 import com.example.orders.menu.dto.MenuItemResponse;
 import com.example.orders.menu.service.MenuItemService;
@@ -48,6 +49,12 @@ public class MenuItemController {
             @AuthenticationPrincipal String userId
     ) {
         return itemService.update(id, request, UUID.fromString(userId));
+    }
+
+    @PostMapping("/{id}/image-upload-url")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ImageUploadUrlResponse generateImageUploadUrl(@PathVariable UUID id) {
+        return itemService.generateImageUploadUrl(id);
     }
 
     @DeleteMapping("/{id}")
