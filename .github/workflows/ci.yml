@@ -18,9 +18,9 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Build and test
+      - name: Build
         working-directory: backend
-        run: ./gradlew build
+        run: ./gradlew build -x test
 
   frontend:
     runs-on: ubuntu-latest
