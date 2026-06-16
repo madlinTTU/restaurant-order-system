@@ -7,8 +7,6 @@ import com.example.orders.menu.mapper.MenuCategoryMapper;
 import com.example.orders.menu.model.MenuCategory;
 import com.example.orders.menu.repository.MenuCategoryRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +21,6 @@ public class MenuCategoryService {
     private final MenuCategoryRepository categoryRepository;
     private final MenuCategoryMapper categoryMapper;
 
-    @Cacheable("menuCategories")
     public List<CategoryResponse> getAll() {
         return categoryRepository.findAll().stream()
                 .map(categoryMapper::toResponse)
@@ -31,7 +28,6 @@ public class MenuCategoryService {
     }
 
     @Transactional
-    @CacheEvict(value = "menuCategories", allEntries = true)
     public CategoryResponse create(CategoryRequest request, UUID currentUserId) {
         return categoryMapper.toResponse(
                 categoryRepository.save(categoryMapper.toEntity(request, currentUserId))
@@ -39,7 +35,6 @@ public class MenuCategoryService {
     }
 
     @Transactional
-    @CacheEvict(value = "menuCategories", allEntries = true)
     public CategoryResponse update(UUID id, CategoryRequest request, UUID currentUserId) {
         MenuCategory category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));
@@ -48,7 +43,6 @@ public class MenuCategoryService {
     }
 
     @Transactional
-    @CacheEvict(value = "menuCategories", allEntries = true)
     public void delete(UUID id) {
         if (!categoryRepository.existsById(id)) {
             throw new ResourceNotFoundException("Category not found: " + id);

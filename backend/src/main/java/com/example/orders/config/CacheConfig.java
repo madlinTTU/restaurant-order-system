@@ -14,7 +14,7 @@ import java.time.Duration;
 import java.util.Map;
 
 @Configuration
-@EnableCaching
+// @EnableCaching — включить когда будем подключать Redis кеш
 public class CacheConfig {
 
     @Bean
