@@ -4,6 +4,11 @@ export interface MenuCategory {
 	description: string
 }
 
+export interface MenuCategoryRequest {
+	name: string
+	description: string
+}
+
 export interface MenuItem {
 	id: string
 	categoryId: string
