@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getMenuItems, getCategories, createCategory, updateCategory, deleteCategory } from '../api/menu.ts'
-import type {MenuCategoryRequest} from "../types/menu.ts";
+import { getMenuItems, getCategories, createCategory, updateCategory, deleteCategory, createMenuItem, updateMenuItem, deleteMenuItem } from '../api/menu.ts'
+import type { MenuCategoryRequest, MenuItemRequest } from "../types/menu.ts";
 
 export const useMenuItems = () =>
 	useQuery({
@@ -36,5 +36,30 @@ export const useDeleteCategory = () => {
 	return useMutation({
 		mutationFn: deleteCategory,
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categories'] }),
+	})
+}
+
+export const useCreateMenuItem = () => {
+	const queryClient = useQueryClient()
+	return useMutation({
+		mutationFn: createMenuItem,
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['menuItems'] }),
+	})
+}
+
+export const useUpdateMenuItem = () => {
+	const queryClient = useQueryClient()
+	return useMutation({
+		mutationFn: ({ id, data }: { id: string; data: MenuItemRequest }) =>
+			updateMenuItem(id, data),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['menuItems'] }),
+	})
+}
+
+export const useDeleteMenuItem = () => {
+	const queryClient = useQueryClient()
+	return useMutation({
+		mutationFn: deleteMenuItem,
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['menuItems'] }),
 	})
 }
