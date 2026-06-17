@@ -19,3 +19,11 @@ export interface MenuItem {
 	imageUrl: string | null
 	available: boolean
 }
+
+export interface MenuItemRequest {
+	categoryId: string
+	name: string
+	description: string
+	price: number
+	available: boolean
+}
