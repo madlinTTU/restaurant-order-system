@@ -4,7 +4,6 @@ import com.example.orders.menu.model.MenuItem;
 import com.example.orders.menu.repository.MenuItemRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +20,6 @@ public class ImageCleanupJob {
 
     @Scheduled(cron = "0 0 3 * * *")
     @Transactional
-    @CacheEvict(value = {"menuItems", "menuItem"}, allEntries = true)
     public void cleanupOrphanedImages() {
         List<MenuItem> items = itemRepository.findAllByImageUrlIsNotNull();
         int cleaned = 0;

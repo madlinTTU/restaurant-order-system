@@ -35,9 +35,9 @@ public class MenuCategoryService {
     }
 
     @Transactional
-    public CategoryResponse update(UUID id, CategoryRequest request, UUID currentUserId) {
-        MenuCategory category = categoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));
+    public CategoryResponse update(UUID categoryId, CategoryRequest request, UUID currentUserId) {
+        MenuCategory category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + categoryId));
         categoryMapper.updateEntity(request, currentUserId, category);
         return categoryMapper.toResponse(category);
     }

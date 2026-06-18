@@ -11,9 +11,6 @@ import com.example.orders.menu.repository.MenuCategoryRepository;
 import com.example.orders.menu.repository.MenuItemRepository;
 import com.example.orders.storage.StorageService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,14 +27,12 @@ public class MenuItemService {
     private final MenuItemMapper itemMapper;
     private final StorageService storageService;
 
-    @Cacheable("menuItems")
     public List<MenuItemResponse> getAll() {
         return itemRepository.findAll().stream()
                 .map(itemMapper::toResponse)
                 .toList();
     }
 
-    @Cacheable(value = "menuItem", key = "#id")
     public MenuItemResponse getById(UUID id) {
         return itemRepository.findById(id)
                 .map(itemMapper::toResponse)
@@ -45,7 +40,6 @@ public class MenuItemService {
     }
 
     @Transactional
-    @CacheEvict(value = "menuItems", allEntries = true)
     public MenuItemResponse create(MenuItemRequest request, UUID currentUserId) {
         MenuCategory category = findCategory(request.categoryId());
         return itemMapper.toResponse(
@@ -54,13 +48,9 @@ public class MenuItemService {
     }
 
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "menuItems", allEntries = true),
-            @CacheEvict(value = "menuItem", key = "#id")
-    })
-    public MenuItemResponse update(UUID id, MenuItemRequest request, UUID currentUserId) {
-        MenuItem item = itemRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + id));
+    public MenuItemResponse update(UUID itemId, MenuItemRequest request, UUID currentUserId) {
+        MenuItem item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + itemId));
         MenuCategory category = findCategory(request.categoryId());
         itemMapper.updateEntity(request, category, currentUserId, item);
         if (request.available() != null) item.setAvailable(request.available());
@@ -68,10 +58,6 @@ public class MenuItemService {
     }
 
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "menuItems", allEntries = true),
-            @CacheEvict(value = "menuItem", key = "#id")
-    })
     public void delete(UUID id) {
         if (!itemRepository.existsById(id)) {
             throw new ResourceNotFoundException("Menu item not found: " + id);
@@ -80,15 +66,11 @@ public class MenuItemService {
     }
 
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "menuItems", allEntries = true),
-            @CacheEvict(value = "menuItem", key = "#id")
-    })
-    public ImageUploadUrlResponse generateImageUploadUrl(UUID id) {
+    public ImageUploadUrlResponse generateImageUploadUrl(UUID id, String contentType) {
         MenuItem item = itemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + id));
 
-        String key = storageService.generateKey(id);
+        String key = storageService.generateKey(id, contentType);
         String publicUrl = storageService.buildPublicUrl(key);
         String uploadUrl = storageService.generatePresignedUploadUrl(key);
 
