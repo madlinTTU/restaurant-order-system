@@ -1,0 +1,216 @@
+package com.example.orders.integration;
+
+import com.example.orders.TestFactory;
+import com.example.orders.order.dto.CreateOrderRequest;
+import com.example.orders.order.dto.UpdateOrderStatusRequest;
+import com.example.orders.order.model.OrderStatus;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.ObjectMapper;
+
+import java.util.UUID;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+class OrderControllerIT extends BaseIntegrationTest {
+
+  @Autowired
+  ObjectMapper objectMapper;
+
+  private String adminToken;
+  private String customerToken;
+  private String menuItemId;
+
+  @BeforeEach
+  void setup() throws Exception {
+    adminToken = registerAdminAndGetToken("admin@test.com", "password123");
+    customerToken = registerCustomerAndGetToken("customer@test.com", "password123");
+    menuItemId = createMenuItem();
+  }
+
+  private String createMenuItem() throws Exception {
+    MvcResult catResult = mockMvc.perform(post("/api/menu/categories")
+        .header("Authorization", "Bearer " + adminToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(TestFactory.categoryRequest())))
+      .andExpect(status().isCreated())
+      .andReturn();
+    String categoryId = objectMapper.readTree(catResult.getResponse().getContentAsString()).get("id").asString();
+
+    MvcResult itemResult = mockMvc.perform(post("/api/menu/items")
+        .header("Authorization", "Bearer " + adminToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(TestFactory.menuItemRequest(UUID.fromString(categoryId)))))
+      .andExpect(status().isCreated())
+      .andReturn();
+    return objectMapper.readTree(itemResult.getResponse().getContentAsString()).get("id").asString();
+  }
+
+  private String createOrder(String token) throws Exception {
+    CreateOrderRequest request = TestFactory.createOrderRequest(UUID.fromString(menuItemId));
+    MvcResult result = mockMvc.perform(post("/api/orders")
+        .header("Authorization", "Bearer " + token)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+      .andExpect(status().isCreated())
+      .andReturn();
+    return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asString();
+  }
+
+
+  @Test
+  void createOrder_returnsCreatedOrder() throws Exception {
+    CreateOrderRequest request = TestFactory.createOrderRequest(UUID.fromString(menuItemId));
+
+    mockMvc.perform(post("/api/orders")
+        .header("Authorization", "Bearer " + customerToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+      .andExpect(status().isCreated())
+      .andExpect(jsonPath("$.id").exists())
+      .andExpect(jsonPath("$.status").value("PLACED"))
+      .andExpect(jsonPath("$.items.length()").value(1))
+      .andExpect(jsonPath("$.totalPrice").value(9.99));
+  }
+
+  @Test
+  void createOrder_forbiddenWhenNoToken() throws Exception {
+    CreateOrderRequest request = TestFactory.createOrderRequest(UUID.fromString(menuItemId));
+
+    mockMvc.perform(post("/api/orders")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+      .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void createOrder_notFoundWhenMenuItemNotExist() throws Exception {
+    CreateOrderRequest request = TestFactory.createOrderRequest(UUID.randomUUID());
+
+    mockMvc.perform(post("/api/orders")
+        .header("Authorization", "Bearer " + customerToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+      .andExpect(status().isNotFound());
+  }
+
+
+  @Test
+  void getOrders_adminSeesAllOrders() throws Exception {
+    createOrder(customerToken);
+
+    mockMvc.perform(get("/api/orders")
+        .header("Authorization", "Bearer " + adminToken))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.length()").value(1));
+  }
+
+  @Test
+  void getOrders_customerSeesOnlyOwnOrders() throws Exception {
+    createOrder(customerToken);
+    String otherToken = registerCustomerAndGetToken("other@test.com", "password123");
+    createOrder(otherToken);
+
+    mockMvc.perform(get("/api/orders")
+        .header("Authorization", "Bearer " + customerToken))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.length()").value(1));
+  }
+
+  @Test
+  void getOrders_forbiddenWhenNoToken() throws Exception {
+    mockMvc.perform(get("/api/orders"))
+      .andExpect(status().isForbidden());
+  }
+
+
+  @Test
+  void getOrder_returnsOrderForOwner() throws Exception {
+    String orderId = createOrder(customerToken);
+
+    mockMvc.perform(get("/api/orders/" + orderId)
+        .header("Authorization", "Bearer " + customerToken))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.id").value(orderId));
+  }
+
+  @Test
+  void getOrder_returnsOrderForAdmin() throws Exception {
+    String orderId = createOrder(customerToken);
+
+    mockMvc.perform(get("/api/orders/" + orderId)
+        .header("Authorization", "Bearer " + adminToken))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.id").value(orderId));
+  }
+
+  @Test
+  void getOrder_notFoundWhenNotOwner() throws Exception {
+    String orderId = createOrder(customerToken);
+    String otherToken = registerCustomerAndGetToken("other@test.com", "password123");
+
+    mockMvc.perform(get("/api/orders/" + orderId)
+        .header("Authorization", "Bearer " + otherToken))
+      .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void getOrder_notFoundWhenMissing() throws Exception {
+    mockMvc.perform(get("/api/orders/" + UUID.randomUUID())
+        .header("Authorization", "Bearer " + adminToken))
+      .andExpect(status().isNotFound());
+  }
+
+
+  @Test
+  void updateStatus_adminCanAdvanceStatus() throws Exception {
+    String orderId = createOrder(customerToken);
+    UpdateOrderStatusRequest request = new UpdateOrderStatusRequest(OrderStatus.CONFIRMED);
+
+    mockMvc.perform(patch("/api/orders/" + orderId + "/status")
+        .header("Authorization", "Bearer " + adminToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").value("CONFIRMED"));
+  }
+
+  @Test
+  void updateStatus_forbiddenWhenNotAdmin() throws Exception {
+    String orderId = createOrder(customerToken);
+    UpdateOrderStatusRequest request = new UpdateOrderStatusRequest(OrderStatus.CONFIRMED);
+
+    mockMvc.perform(patch("/api/orders/" + orderId + "/status")
+        .header("Authorization", "Bearer " + customerToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+      .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void updateStatus_badRequestWhenInvalidTransition() throws Exception {
+    String orderId = createOrder(customerToken);
+    UpdateOrderStatusRequest request = new UpdateOrderStatusRequest(OrderStatus.DELIVERED);
+
+    mockMvc.perform(patch("/api/orders/" + orderId + "/status")
+        .header("Authorization", "Bearer " + adminToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+      .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateStatus_notFoundWhenOrderMissing() throws Exception {
+    UpdateOrderStatusRequest request = new UpdateOrderStatusRequest(OrderStatus.CONFIRMED);
+
+    mockMvc.perform(patch("/api/orders/" + UUID.randomUUID() + "/status")
+        .header("Authorization", "Bearer " + adminToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+      .andExpect(status().isNotFound());
+  }
+}

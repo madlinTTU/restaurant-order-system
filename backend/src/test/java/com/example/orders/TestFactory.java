@@ -11,6 +11,18 @@ import com.example.orders.menu.dto.MenuItemRequest;
 import com.example.orders.menu.dto.MenuItemResponse;
 import com.example.orders.menu.model.MenuCategory;
 import com.example.orders.menu.model.MenuItem;
+import com.example.orders.order.dto.CreateOrderRequest;
+import com.example.orders.order.dto.OrderItemRequest;
+import com.example.orders.order.dto.OrderItemResponse;
+import com.example.orders.order.dto.OrderResponse;
+import com.example.orders.order.model.Order;
+import com.example.orders.order.model.OrderItem;
+import com.example.orders.order.model.OrderStatus;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -132,5 +144,65 @@ public class TestFactory {
         item.setModifiedBy(UUID.randomUUID());
         item.setVersion(0L);
         return item;
+    }
+
+    // --- Orders ---
+
+    public static Order order(UUID userId) {
+        Order order = new Order();
+        order.setId(UUID.randomUUID());
+        order.setUserId(userId);
+        order.setOrderStatus(OrderStatus.PLACED);
+        order.setTotalPrice(new BigDecimal("9.99"));
+        order.setNotes(null);
+        order.setCreatedAt(OffsetDateTime.now());
+        order.setCreatedBy(userId);
+        order.setModifiedAt(OffsetDateTime.now());
+        order.setModifiedBy(userId);
+        order.setVersion(0L);
+        return order;
+    }
+
+    public static OrderItem orderItem(Order order, MenuItem menuItem) {
+        OrderItem item = new OrderItem();
+        item.setId(UUID.randomUUID());
+        item.setOrder(order);
+        item.setMenuItem(menuItem);
+        item.setQuantity(1);
+        item.setUnitPrice(menuItem.getPrice());
+        return item;
+    }
+
+    public static OrderItemRequest orderItemRequest(UUID menuItemId) {
+        return new OrderItemRequest(menuItemId, 1);
+    }
+
+    public static CreateOrderRequest createOrderRequest(UUID menuItemId) {
+        return new CreateOrderRequest(List.of(orderItemRequest(menuItemId)), null);
+    }
+
+    public static OrderItemResponse orderItemResponse(OrderItem item) {
+        return new OrderItemResponse(
+                item.getId(),
+                item.getMenuItem().getId(),
+                item.getMenuItem().getName(),
+                item.getQuantity(),
+                item.getUnitPrice()
+        );
+    }
+
+    public static OrderResponse orderResponse(Order order) {
+        List<OrderItemResponse> items = order.getItems().stream()
+                .map(TestFactory::orderItemResponse)
+                .toList();
+        return new OrderResponse(
+                order.getId(),
+                order.getUserId(),
+                order.getOrderStatus(),
+                items,
+                order.getTotalPrice(),
+                order.getNotes(),
+                order.getCreatedAt()
+        );
     }
 }
