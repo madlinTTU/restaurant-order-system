@@ -35,7 +35,7 @@ export default function AdminMenuItemsPage() {
 
 	const uploadImageIfSelected = async (itemId: string) => {
 		if (imageFile) {
-			const {uploadUrl} = await getImageUploadUrl(itemId)
+			const {uploadUrl} = await getImageUploadUrl(itemId, imageFile.type)
 			await uploadImageToS3(uploadUrl, imageFile)
 		}
 	}

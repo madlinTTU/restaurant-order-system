@@ -39,8 +39,10 @@ export const deleteMenuItem = async (id: string): Promise<void> => {
 	await api.delete(`/menu/items/${id}`)
 }
 
-export const getImageUploadUrl = async (id: string): Promise<{ uploadUrl: string }> => {
-	const res = await api.post(`/menu/items/${id}/image-upload-url`)
+export const getImageUploadUrl = async (id: string, contentType: string): Promise<{ uploadUrl: string }> => {
+	const res = await api.post(`/menu/items/${id}/image-upload-url`, null, {
+		params: { contentType }
+	})
 	return res.data
 }
 

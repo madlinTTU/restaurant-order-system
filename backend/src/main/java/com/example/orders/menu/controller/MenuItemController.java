@@ -41,20 +41,23 @@ public class MenuItemController {
         return itemService.create(request, UUID.fromString(userId));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{itemId}")
     @PreAuthorize("hasRole('ADMIN')")
     public MenuItemResponse update(
-            @PathVariable UUID id,
+            @PathVariable UUID itemId,
             @Valid @RequestBody MenuItemRequest request,
             @AuthenticationPrincipal String userId
     ) {
-        return itemService.update(id, request, UUID.fromString(userId));
+        return itemService.update(itemId, request, UUID.fromString(userId));
     }
 
     @PostMapping("/{id}/image-upload-url")
     @PreAuthorize("hasRole('ADMIN')")
-    public ImageUploadUrlResponse generateImageUploadUrl(@PathVariable UUID id) {
-        return itemService.generateImageUploadUrl(id);
+    public ImageUploadUrlResponse generateImageUploadUrl(
+            @PathVariable UUID id,
+            @RequestParam String contentType
+    ) {
+        return itemService.generateImageUploadUrl(id, contentType);
     }
 
     @DeleteMapping("/{id}")
