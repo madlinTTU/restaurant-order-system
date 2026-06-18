@@ -33,6 +33,20 @@ public class JwtService {
                 .compact();
     }
 
+    public String generateRefreshToken(User user) {
+        SecretKey key = buildKey();
+        return Jwts.builder()
+                .subject(user.getId().toString())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtProperties.getRefreshTokenExpiration() * 1000))
+                .signWith(key)
+                .compact();
+    }
+
+    public String extractSubject(String token) {
+        return extractClaims(token).getSubject();
+    }
+
     public boolean isTokenValid(String token) {
         try {
             extractClaims(token);

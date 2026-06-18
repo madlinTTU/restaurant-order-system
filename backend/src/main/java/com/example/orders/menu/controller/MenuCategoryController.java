@@ -35,14 +35,14 @@ public class MenuCategoryController {
         return categoryService.create(request, UUID.fromString(userId));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{categoryId}")
     @PreAuthorize("hasRole('ADMIN')")
     public CategoryResponse update(
-            @PathVariable UUID id,
+            @PathVariable UUID categoryId,
             @Valid @RequestBody CategoryRequest request,
             @AuthenticationPrincipal String userId
     ) {
-        return categoryService.update(id, request, UUID.fromString(userId));
+        return categoryService.update(categoryId, request, UUID.fromString(userId));
     }
 
     @DeleteMapping("/{id}")

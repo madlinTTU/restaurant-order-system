@@ -8,6 +8,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -18,8 +19,18 @@ public class StorageService {
     private final S3Presigner s3Presigner;
     private final StorageProperties props;
 
-    public String generateKey(UUID itemId) {
-        return "menu/images/" + itemId + "/" + UUID.randomUUID() + ".jpg";
+    private static final Map<String, String> ALLOWED_IMAGE_TYPES = Map.of(
+            "image/jpeg", "jpg",
+            "image/png", "png",
+            "image/webp", "webp"
+    );
+
+    public String generateKey(UUID itemId, String contentType) {
+        String extension = ALLOWED_IMAGE_TYPES.get(contentType);
+        if (extension == null) {
+            throw new IllegalArgumentException("Unsupported image type: " + contentType);
+        }
+        return "menu/images/" + itemId + "/" + UUID.randomUUID() + "." + extension;
     }
 
     public String buildPublicUrl(String key) {
