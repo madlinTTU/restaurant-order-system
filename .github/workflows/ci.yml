@@ -18,9 +18,9 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Build
+      - name: Build and test
         working-directory: backend
-        run: ./gradlew build -x test
+        run: ./gradlew build
 
   frontend:
     runs-on: ubuntu-latest
