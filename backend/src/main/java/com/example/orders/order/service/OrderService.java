@@ -7,10 +7,15 @@ import com.example.orders.menu.repository.MenuItemRepository;
 import com.example.orders.order.dto.CreateOrderRequest;
 import com.example.orders.order.dto.OrderItemRequest;
 import com.example.orders.order.dto.OrderResponse;
+import com.example.orders.order.event.OrderEvent;
+import com.example.orders.order.event.OrderEventPayload;
+import com.example.orders.order.event.OrderEventProducer;
+import com.example.orders.order.event.OrderStatusEvent;
 import com.example.orders.order.mapper.OrderMapper;
 import com.example.orders.order.model.Order;
 import com.example.orders.order.model.OrderItem;
 import com.example.orders.order.model.OrderStatus;
+import com.example.orders.order.repository.OrderEventRepository;
 import com.example.orders.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,9 +34,11 @@ import java.util.stream.Collectors;
 public class OrderService {
 
   private final OrderRepository orderRepository;
+  private final OrderEventRepository orderEventRepository;
   private final MenuItemRepository menuItemRepository;
   private final OrderMapper orderMapper;
   private final SecurityUtils securityUtils;
+  private final OrderEventProducer orderEventProducer;
 
   @Transactional
   public OrderResponse createOrder(CreateOrderRequest request, UUID currentUserId) {
@@ -45,7 +52,23 @@ public class OrderService {
     validateItems(request.items(), menuItemMap);
     Order order = initializeOrder(request, menuItemMap, currentUserId);
 
-    return orderMapper.toResponse(orderRepository.save(order));
+    Order savedOrder = orderRepository.save(order);
+    saveAndPublishEvent(savedOrder, OrderStatus.PLACED);
+    return orderMapper.toResponse(savedOrder);
+  }
+
+  private void saveAndPublishEvent(Order order, OrderStatus status) {
+    OrderEvent savedEvent = orderEventRepository.save(OrderEvent.builder()
+        .orderId(order.getId())
+        .status(status)
+        .build());
+    orderEventProducer.publish(new OrderStatusEvent(
+        savedEvent.getId(),
+        order.getUserId(),
+        status,
+        savedEvent.getCreatedAt().toInstant(),
+        new OrderEventPayload(order.getId(), order.getTotalPrice(), order.getNotes())
+    ));
   }
 
   private Order initializeOrder(CreateOrderRequest request, Map<UUID, MenuItem> menuItemMap, UUID currentUserId) {
@@ -114,6 +137,7 @@ public class OrderService {
     }
     order.setOrderStatus(newStatus);
     order.setModifiedBy(currentUserId);
+    saveAndPublishEvent(order, newStatus);
     return orderMapper.toResponse(order);
   }
 }
