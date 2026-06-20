@@ -46,3 +46,4 @@ docker-compose.override.yml
 # ===== Working context (not for public repo) =====
 docs/
 !docs/redis-plan.md
+CLAUDE.md
