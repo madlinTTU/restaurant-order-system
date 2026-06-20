@@ -14,6 +14,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.containers.PostgreSQLContainer;
+import com.example.orders.order.event.OrderEventProducer;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
@@ -42,6 +43,7 @@ public abstract class BaseIntegrationTest {
 
     @MockitoBean S3Client s3Client;
     @MockitoBean S3Presigner s3Presigner;
+    @MockitoBean OrderEventProducer orderEventProducer;
 
     @Autowired MockMvc mockMvc;
     @Autowired JdbcTemplate jdbcTemplate;

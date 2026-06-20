@@ -15,6 +15,7 @@ import com.example.orders.order.dto.CreateOrderRequest;
 import com.example.orders.order.dto.OrderItemRequest;
 import com.example.orders.order.dto.OrderItemResponse;
 import com.example.orders.order.dto.OrderResponse;
+import com.example.orders.order.event.OrderEvent;
 import com.example.orders.order.model.Order;
 import com.example.orders.order.model.OrderItem;
 import com.example.orders.order.model.OrderStatus;
@@ -144,6 +145,17 @@ public class TestFactory {
         item.setModifiedBy(UUID.randomUUID());
         item.setVersion(0L);
         return item;
+    }
+
+    // --- Order events ---
+
+    public static OrderEvent orderEvent(UUID orderId, OrderStatus status) {
+        OrderEvent event = new OrderEvent();
+        event.setId(UUID.randomUUID());
+        event.setOrderId(orderId);
+        event.setStatus(status);
+        event.setCreatedAt(OffsetDateTime.now());
+        return event;
     }
 
     // --- Orders ---

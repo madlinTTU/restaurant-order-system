@@ -8,9 +8,12 @@ import com.example.orders.menu.model.MenuItem;
 import com.example.orders.menu.repository.MenuItemRepository;
 import com.example.orders.order.dto.CreateOrderRequest;
 import com.example.orders.order.dto.OrderResponse;
+import com.example.orders.order.event.OrderEvent;
+import com.example.orders.order.event.OrderEventProducer;
 import com.example.orders.order.mapper.OrderMapper;
 import com.example.orders.order.model.Order;
 import com.example.orders.order.model.OrderStatus;
+import com.example.orders.order.repository.OrderEventRepository;
 import com.example.orders.order.repository.OrderRepository;
 import com.example.orders.order.service.OrderService;
 import org.junit.jupiter.api.Test;
@@ -24,6 +27,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,11 +36,15 @@ class OrderServiceTest {
   @Mock
   OrderRepository orderRepository;
   @Mock
+  OrderEventRepository orderEventRepository;
+  @Mock
   MenuItemRepository menuItemRepository;
   @Mock
   OrderMapper orderMapper;
   @Mock
   SecurityUtils securityUtils;
+  @Mock
+  OrderEventProducer orderEventProducer;
 
   @InjectMocks
   OrderService orderService;
@@ -50,16 +58,24 @@ class OrderServiceTest {
     CreateOrderRequest request = TestFactory.createOrderRequest(menuItem.getId());
 
     Order savedOrder = TestFactory.order(userId);
+    OrderEvent savedEvent = TestFactory.orderEvent(savedOrder.getId(), OrderStatus.PLACED);
     OrderResponse response = TestFactory.orderResponse(savedOrder);
 
     when(menuItemRepository.findAllById(List.of(request.items().getFirst().menuItemId()))).thenReturn(List.of(menuItem));
     when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
+    when(orderEventRepository.save(any(OrderEvent.class))).thenReturn(savedEvent);
     when(orderMapper.toResponse(savedOrder)).thenReturn(response);
 
     OrderResponse result = orderService.createOrder(request, userId);
 
     assertThat(result).isEqualTo(response);
     verify(orderRepository).save(any(Order.class));
+    verify(orderEventProducer).publish(argThat(e ->
+        e.eventId().equals(savedEvent.getId()) &&
+        e.customerId().equals(savedOrder.getUserId()) &&
+        e.status() == OrderStatus.PLACED &&
+        e.payload().orderId().equals(savedOrder.getId())
+    ));
   }
 
   @Test
@@ -182,13 +198,22 @@ class OrderServiceTest {
     Order order = TestFactory.order(userId);
     OrderResponse response = TestFactory.orderResponse(order);
 
+    OrderEvent savedEvent = TestFactory.orderEvent(order.getId(), OrderStatus.CONFIRMED);
+
     when(orderRepository.findById(order.getId())).thenReturn(Optional.of(order));
+    when(orderEventRepository.save(any(OrderEvent.class))).thenReturn(savedEvent);
     when(orderMapper.toResponse(order)).thenReturn(response);
 
     OrderResponse result = orderService.updateStatus(order.getId(), OrderStatus.CONFIRMED, userId);
 
     assertThat(result).isEqualTo(response);
     assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
+    verify(orderEventProducer).publish(argThat(e ->
+        e.eventId().equals(savedEvent.getId()) &&
+        e.customerId().equals(order.getUserId()) &&
+        e.status() == OrderStatus.CONFIRMED &&
+        e.payload().orderId().equals(order.getId())
+    ));
   }
 
   @Test
