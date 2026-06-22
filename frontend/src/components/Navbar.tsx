@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 const navLink = ({ isActive }: { isActive: boolean }) =>
@@ -6,6 +6,12 @@ const navLink = ({ isActive }: { isActive: boolean }) =>
 
 export default function Navbar() {
   const { isAuthenticated, isAdmin } = useAuth()
+  const navigate = useNavigate()
+
+  const logout = () => {
+    localStorage.removeItem('accessToken')
+    navigate('/login')
+  }
 
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
@@ -16,9 +22,15 @@ export default function Navbar() {
           <NavLink to="/orders" className={navLink}>My Orders</NavLink>
         )}
         {isAdmin && (
-          <NavLink to="/admin/menu" className={navLink}>Admin</NavLink>
+          <NavLink to="/admin" className={navLink}>Admin</NavLink>
         )}
-        <NavLink to="/login" className={navLink}>Login</NavLink>
+        {isAuthenticated ? (
+          <button onClick={logout} className="text-sm text-gray-400 hover:text-gray-700 transition-colors">
+            Logout
+          </button>
+        ) : (
+          <NavLink to="/login" className={navLink}>Login</NavLink>
+        )}
       </div>
     </nav>
   )
