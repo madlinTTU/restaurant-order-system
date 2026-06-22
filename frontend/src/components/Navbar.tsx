@@ -1,8 +1,11 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
+import { ShoppingCart } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
+import { useCart } from '@/contexts/CartContext'
+import { Button } from '@/components/ui/button'
 
-const navLink = ({ isActive }: { isActive: boolean }) =>
-  `text-sm transition-colors ${isActive ? 'text-gray-900 font-medium' : 'text-gray-400 hover:text-gray-700'}`
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `text-sm transition-colors ${isActive ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`
 
 export default function Navbar() {
   const { isAuthenticated, isAdmin, role } = useAuth()
@@ -14,15 +17,16 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-      <span className="font-semibold text-gray-900 text-sm">Restaurant</span>
+    <nav className="border-b bg-background px-6 py-3 flex items-center justify-between">
+      <span className="font-semibold text-sm">Restaurant</span>
+
       <div className="flex items-center gap-4">
-        <NavLink to="/" className={navLink}>Menu</NavLink>
+        <NavLink to="/" className={navLinkClass}>Menu</NavLink>
         {isAuthenticated && (
-          <NavLink to="/orders" className={navLink}>My Orders</NavLink>
+          <NavLink to="/orders" className={navLinkClass}>My Orders</NavLink>
         )}
         {isAdmin && (
-          <NavLink to="/admin" className={navLink}>Admin</NavLink>
+          <NavLink to="/admin" className={navLinkClass}>Admin</NavLink>
         )}
         {role === 'KITCHEN' && (
           <NavLink to="/kitchen" className={navLink}>Kitchen</NavLink>
@@ -33,12 +37,19 @@ export default function Navbar() {
           </span>
         )}
         {isAuthenticated ? (
-          <button onClick={logout} className="text-sm text-gray-400 hover:text-gray-700 transition-colors">
-            Logout
-          </button>
+          <Button variant="ghost" size="sm" onClick={logout}>Logout</Button>
         ) : (
-          <NavLink to="/login" className={navLink}>Login</NavLink>
+          <NavLink to="/login" className={navLinkClass}>Login</NavLink>
         )}
+
+        <Button variant="ghost" size="icon" className="relative" onClick={() => setIsOpen(true)}>
+          <ShoppingCart className="h-5 w-5" />
+          {totalItems > 0 && (
+            <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-4 w-4 flex items-center justify-center leading-none">
+              {totalItems}
+            </span>
+          )}
+        </Button>
       </div>
     </nav>
   )

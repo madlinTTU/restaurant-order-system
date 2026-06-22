@@ -219,7 +219,7 @@ export default function AdminMenuItemsPage() {
 							<td className="px-5 py-3 font-medium text-gray-900">{item.name}</td>
 							<td className="px-5 py-3 text-gray-500">{item.categoryName}</td>
 							<td className="px-5 py-3 text-gray-500">{item.description}</td>
-							<td className="px-5 py-3 text-gray-900">${item.price.toFixed(2)}</td>
+							<td className="px-5 py-3 text-gray-900">{item.price.toFixed(2)} €</td>
 							<td className="px-5 py-3">
 									<span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
 										item.available ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'

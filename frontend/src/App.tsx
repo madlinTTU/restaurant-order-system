@@ -1,4 +1,5 @@
-import { Navigate, Routes, Route } from 'react-router-dom'
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
+import { CartProvider } from '@/contexts/CartContext'
 import MenuPage from './pages/MenuPage'
 import KitchenPage from './pages/KitchenPage'
 import AdminPanel from './pages/AdminPanel'
@@ -7,14 +8,21 @@ import AdminMenuItemsPage from './pages/AdminMenuItemsPage'
 import AdminUsersPage from './pages/AdminUsersPage'
 import LoginPage from './pages/LoginPage'
 import MyOrdersPage from './pages/MyOrdersPage'
+import MenuItemPage from './pages/MenuItemPage'
 import Navbar from './components/Navbar'
+import CartSheet from './components/Cart'
 
 export default function App() {
+  const location = useLocation()
+  const hideNav = location.pathname === '/login'
+
   return (
-    <>
-      <Navbar />
+    <CartProvider>
+      {!hideNav && <Navbar />}
+      {!hideNav && <CartSheet />}
       <Routes>
         <Route path="/" element={<MenuPage />} />
+        <Route path="/menu/:id" element={<MenuItemPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/orders" element={<MyOrdersPage />} />
         <Route path="/kitchen" element={<KitchenPage />} />
@@ -25,6 +33,6 @@ export default function App() {
           <Route path="users" element={<AdminUsersPage />} />
         </Route>
       </Routes>
-    </>
+    </CartProvider>
   )
 }
