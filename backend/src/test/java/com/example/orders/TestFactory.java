@@ -19,6 +19,7 @@ import com.example.orders.order.event.OrderEvent;
 import com.example.orders.order.model.Order;
 import com.example.orders.order.model.OrderItem;
 import com.example.orders.order.model.OrderStatus;
+import com.example.orders.user.dto.CreateUserRequest;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -75,6 +76,20 @@ public class TestFactory {
         User user = user();
         user.setRole(Role.ADMIN);
         return user;
+    }
+
+    public static User kitchenUser() {
+        User user = user();
+        user.setRole(Role.KITCHEN);
+        return user;
+    }
+
+    public static CreateUserRequest createUserRequest(Role role) {
+        return new CreateUserRequest("kitchen@test.com", DEFAULT_PASSWORD, role);
+    }
+
+    public static CreateUserRequest createUserRequest(String email, Role role) {
+        return new CreateUserRequest(email, DEFAULT_PASSWORD, role);
     }
 
     // --- Menu categories ---
