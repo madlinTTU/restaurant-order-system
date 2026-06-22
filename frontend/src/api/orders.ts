@@ -15,3 +15,13 @@ export const getOrder = async (id: string): Promise<OrderResponse> => {
   const res = await api.get(`/orders/${id}`)
   return res.data
 }
+
+export const getActiveOrders = async (): Promise<OrderResponse[]> => {
+  const res = await api.get('/orders/active')
+  return res.data
+}
+
+export const updateOrderStatus = async (id: string, status: string): Promise<OrderResponse> => {
+  const res = await api.patch(`/orders/${id}/status`, { status })
+  return res.data
+}
