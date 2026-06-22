@@ -1,255 +1,276 @@
-import {useState} from 'react'
+import { useState } from 'react'
 import * as React from 'react'
-import {useQueryClient} from '@tanstack/react-query'
-import {useCategories, useMenuItems, useCreateMenuItem, useUpdateMenuItem, useDeleteMenuItem} from '../hooks/useMenu.ts'
-import type {MenuItem, MenuItemRequest} from '../types/menu.ts'
-import {getImageUploadUrl, uploadImageToS3} from '../api/menu.ts'
+import { useQueryClient } from '@tanstack/react-query'
+import { useCategories, useMenuItems, useCreateMenuItem, useUpdateMenuItem, useDeleteMenuItem } from '../hooks/useMenu.ts'
+import type { MenuItem, MenuItemRequest } from '../types/menu.ts'
+import { getImageUploadUrl, uploadImageToS3 } from '../api/menu.ts'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
-const emptyForm = {
-	categoryId: '',
-	name: '',
-	description: '',
-	price: '',
-	available: true,
-}
+const emptyForm = { categoryId: '', name: '', description: '', price: '', available: true }
 
+const selectClass = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 
 export default function AdminMenuItemsPage() {
-	const [formVisible, setFormVisible] = useState(false)
-	const [form, setForm] = useState(emptyForm)
-	const [editingId, setEditingId] = useState<string | null>(null)
-	const [imageFile, setImageFile] = useState<File | null>(null)
+  const [formVisible, setFormVisible] = useState(false)
+  const [form, setForm] = useState(emptyForm)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [availableFilter, setAvailableFilter] = useState<'all' | 'available' | 'hidden'>('all')
 
+  const queryClient = useQueryClient()
+  const { data: categories } = useCategories()
+  const { data: items, isLoading, isError } = useMenuItems()
+  const createItem = useCreateMenuItem()
+  const updateItem = useUpdateMenuItem()
+  const deleteItem = useDeleteMenuItem()
 
-	const queryClient = useQueryClient()
-	const {data: categories} = useCategories()
-	const {data: items, isLoading, isError} = useMenuItems()
-	const createItem = useCreateMenuItem()
-	const updateItem = useUpdateMenuItem()
-	const deleteItem = useDeleteMenuItem()
+  const closeForm = () => {
+    setFormVisible(false)
+    setEditingId(null)
+    setForm(emptyForm)
+    setImageFile(null)
+    setCurrentImageUrl(null)
+  }
 
-	const closeForm = () => {
-		setFormVisible(false)
-		setEditingId(null)
-		setForm(emptyForm)
-		setImageFile(null)
-	}
+  const uploadImageIfSelected = async (itemId: string) => {
+    if (imageFile) {
+      const { uploadUrl } = await getImageUploadUrl(itemId, imageFile.type)
+      await uploadImageToS3(uploadUrl, imageFile)
+      await queryClient.invalidateQueries({ queryKey: ['menuItems'] })
+    }
+  }
 
-	const uploadImageIfSelected = async (itemId: string) => {
-		if (imageFile) {
-			const {uploadUrl} = await getImageUploadUrl(itemId, imageFile.type)
-			await uploadImageToS3(uploadUrl, imageFile)
-			await queryClient.invalidateQueries({ queryKey: ['menuItems'] })
-		}
-	}
-	const renderImage = (item: MenuItem) => {
-		if (item.imageUrl) {
-			return <img src={item.imageUrl} alt={item.name} className="w-10 h-10 object-cover rounded"/>
-		}
-		return (
-			<div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
-				<span className="text-gray-300 text-xs">—</span>
-			</div>
-		)
-	}
+  const openEdit = (item: MenuItem) => {
+    setEditingId(item.id)
+    setForm({
+      categoryId: item.categoryId,
+      name: item.name,
+      description: item.description ?? '',
+      price: item.price.toString(),
+      available: item.available,
+    })
+    setCurrentImageUrl(item.imageUrl ?? null)
+    setFormVisible(true)
+  }
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const itemData: MenuItemRequest = {
+      categoryId: form.categoryId,
+      name: form.name,
+      description: form.description,
+      price: parseFloat(form.price),
+      available: form.available,
+    }
 
-	const openEdit = (item: MenuItem) => {
-		setEditingId(item.id)
-		setForm({
-			categoryId: item.categoryId,
-			name: item.name,
-			description: item.description ?? '',
-			price: item.price.toString(),
-			available: item.available,
-		})
-		setFormVisible(true)
-	}
+    if (editingId) {
+      updateItem.mutate({ id: editingId, data: itemData }, {
+        onSuccess: async () => { await uploadImageIfSelected(editingId); closeForm() },
+        onError: e => alert(e.message),
+      })
+    } else {
+      createItem.mutate(itemData, {
+        onSuccess: async (created) => { await uploadImageIfSelected(created.id); closeForm() },
+        onError: e => alert(e.message),
+      })
+    }
+  }
 
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault()
-		const itemData: MenuItemRequest = {
-			categoryId: form.categoryId,
-			name: form.name,
-			description: form.description,
-			price: parseFloat(form.price),
-			available: form.available,
-		}
+  const isPending = createItem.isPending || updateItem.isPending
+  const filtered = (items ?? []).filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase())
+    const matchesAvailable =
+      availableFilter === 'all' ||
+      (availableFilter === 'available' && item.available) ||
+      (availableFilter === 'hidden' && !item.available)
+    return matchesSearch && matchesAvailable
+  })
 
-		if (editingId) {
-			updateItem.mutate({id: editingId, data: itemData}, {
-				onSuccess: async () => {
-					await uploadImageIfSelected(editingId)
-					closeForm()
-				},
-				onError: e => alert(e.message),
-			})
-		} else {
-			createItem.mutate(itemData, {
-				onSuccess: async (created) => {
-					await uploadImageIfSelected(created.id)
-					closeForm()
-				},
-				onError: e => alert(e.message),
-			})
-		}
-	}
+  const grouped = (categories ?? []).map(cat => ({
+    category: cat,
+    items: filtered.filter(item => item.categoryId === cat.id),
+  }))
 
-	return (
-		<div className="bg-white rounded-lg border border-gray-200">
-			<div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-				<h2 className="font-medium text-gray-900">Menu Items</h2>
-				<button
-					onClick={() => setFormVisible(true)}
-					className="px-3 py-1.5 bg-gray-900 text-white text-sm rounded-md hover:bg-gray-700 transition-colors"
-				>
-					+ Add
-				</button>
-			</div>
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between px-5 py-4 border-b space-y-0">
+        <span className="font-medium">Menu Items</span>
+        <Button size="sm" onClick={() => setFormVisible(true)}>+ Add</Button>
+      </CardHeader>
 
-			{formVisible && (
-				<div className="px-5 py-4 border-b border-gray-200 bg-gray-50">
-					<form onSubmit={handleSubmit} className="space-y-3">
-						<div className="grid grid-cols-2 gap-3">
-							<div>
-								<label className="block text-xs font-medium text-gray-600 mb-1">Category *</label>
-								<select
-									required
-									value={form.categoryId}
-									onChange={e => setForm(f => ({...f, categoryId: e.target.value}))}
-									className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white"
-								>
-									<option value="">Select category...</option>
-									{categories?.map(c => (
-										<option key={c.id} value={c.id}>{c.name}</option>
-									))}
-								</select>
-							</div>
-							<div>
-								<label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
-								<input
-									required
-									value={form.name}
-									onChange={e => setForm(f => ({...f, name: e.target.value}))}
-									className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-								/>
-							</div>
-							<div>
-								<label className="block text-xs font-medium text-gray-600 mb-1">Price *</label>
-								<input
-									required
-									type="number"
-									min="0"
-									step="0.01"
-									value={form.price}
-									onChange={e => setForm(f => ({...f, price: e.target.value}))}
-									className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-								/>
-							</div>
-							<div>
-								<label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
-								<input
-									value={form.description}
-									onChange={e => setForm(f => ({...f, description: e.target.value}))}
-									className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-								/>
-							</div>
-							<div>
-								<label className="block text-xs font-medium text-gray-600 mb-1">Image</label>
-								<input
-									type='file'
-									accept='image/*'
-									onChange={e => setImageFile(e.target.files?.[0] ?? null)}
-									className="w-full text-sm text-gray-500 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-gray-900 file:text-white
-								  hover:file:bg-gray-700 file:cursor-pointer"/>
-							</div>
-							<div className="flex items-center gap-2 pt-4">
-								<input
-									type="checkbox"
-									id="available"
-									checked={form.available}
-									onChange={e => setForm(f => ({...f, available: e.target.checked}))}
-									className="rounded border-gray-300"
-								/>
-								<label htmlFor="available" className="text-xs font-medium text-gray-600">Available</label>
-							</div>
-						</div>
-						<div className="flex gap-2">
-							<button
-								type="submit"
-								disabled={createItem.isPending || updateItem.isPending}
-								className="px-3 py-1.5 bg-gray-900 text-white text-sm rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-							>
-								{createItem.isPending || updateItem.isPending ? 'Saving...' : editingId ? 'Save' : 'Create'}
-							</button>
-							<button
-								type="button"
-								onClick={closeForm}
-								className="px-3 py-1.5 border border-gray-300 text-sm rounded-md hover:bg-gray-100 transition-colors"
-							>
-								Cancel
-							</button>
-						</div>
-					</form>
-				</div>
-			)}
+      {formVisible && (
+        <div className="px-5 py-4 border-b bg-muted/30">
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Category *</Label>
+                <select
+                  required
+                  value={form.categoryId}
+                  onChange={e => setForm(f => ({ ...f, categoryId: e.target.value }))}
+                  className={selectClass}
+                >
+                  <option value="">Select category...</option>
+                  {categories?.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label>Name *</Label>
+                <Input
+                  required
+                  value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Price *</Label>
+                <Input
+                  required
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.price}
+                  onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Description</Label>
+                <Input
+                  value={form.description}
+                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Image</Label>
+                {currentImageUrl && !imageFile && (
+                  <div className="flex items-center gap-2 mb-1">
+                    <img src={currentImageUrl} alt="current" className="w-10 h-10 object-cover rounded-md" />
+                    <span className="text-xs text-muted-foreground">Current image - select file to replace</span>
+                  </div>
+                )}
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => setImageFile(e.target.files?.[0] ?? null)}
+                  className="cursor-pointer"
+                />
+              </div>
+              <div className="flex items-center gap-2 pt-5">
+                <input
+                  type="checkbox"
+                  id="available"
+                  checked={form.available}
+                  onChange={e => setForm(f => ({ ...f, available: e.target.checked }))}
+                  className="rounded border-input"
+                />
+                <Label htmlFor="available">Available</Label>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" size="sm" disabled={isPending}>
+                {isPending ? 'Saving...' : editingId ? 'Save' : 'Create'}
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={closeForm}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
 
-			{isLoading && <p className="px-5 py-8 text-sm text-gray-400 text-center">Loading...</p>}
-			{isError && <p className="px-5 py-8 text-sm text-red-500 text-center">Something went wrong.</p>}
-			{items?.length === 0 && <p className="px-5 py-8 text-sm text-gray-400 text-center">No items yet.</p>}
-			{items && items.length > 0 && (
-				<table className="w-full text-sm">
-					<thead>
-					<tr className="text-left text-xs text-gray-500 uppercase tracking-wide border-b border-gray-200">
-						<th className="px-5 py-3 font-medium">Image</th>
-						<th className="px-5 py-3 font-medium">Name</th>
-						<th className="px-5 py-3 font-medium">Category</th>
-						<th className="px-5 py-3 font-medium">Description</th>
-						<th className="px-5 py-3 font-medium">Price</th>
-						<th className="px-5 py-3 font-medium">Available</th>
-						<th className="px-5 py-3"/>
-					</tr>
-					</thead>
-					<tbody className="divide-y divide-gray-100">
-					{items.map(item => (
-						<tr key={item.id} className="hover:bg-gray-50 transition-colors">
-							<td className="px-5 py-3">
-								{renderImage(item)}
-							</td>
-							<td className="px-5 py-3 font-medium text-gray-900">{item.name}</td>
-							<td className="px-5 py-3 text-gray-500">{item.categoryName}</td>
-							<td className="px-5 py-3 text-gray-500">{item.description}</td>
-							<td className="px-5 py-3 text-gray-900">{item.price.toFixed(2)} €</td>
-							<td className="px-5 py-3">
-									<span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-										item.available ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
-									}`}>
-										{item.available ? 'Yes' : 'No'}
-									</span>
-							</td>
-							<td className="px-5 py-3 text-right space-x-3">
-								<button
-									onClick={() => openEdit(item)}
-									className="text-xs text-gray-500 hover:text-gray-900 transition-colors"
-								>
-									Edit
-								</button>
-								<button
-									onClick={() => {
-										if (confirm('Delete this item?')) {
-											deleteItem.mutate(item.id)
-										}
-									}}
-									className="text-xs text-red-400 hover:text-red-600 transition-colors"
-								>
-									Delete
-								</button>
-							</td>
-						</tr>
-					))}
-					</tbody>
-				</table>
-			)}
-		</div>
-	)
+      <CardContent className="p-0">
+        {isLoading && <p className="px-5 py-8 text-sm text-muted-foreground text-center">Loading...</p>}
+        {isError && <p className="px-5 py-8 text-sm text-destructive text-center">Something went wrong.</p>}
+        {!isLoading && !isError && items && (
+          <>
+            <div className="px-5 py-3 border-b flex gap-3">
+              <Input
+                placeholder="Search items..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="max-w-xs h-8 text-sm"
+              />
+              <select
+                value={availableFilter}
+                onChange={e => setAvailableFilter(e.target.value as 'all' | 'available' | 'hidden')}
+                className="h-8 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="all">All</option>
+                <option value="available">Available</option>
+                <option value="hidden">Hidden</option>
+              </select>
+            </div>
+            {grouped.every(g => g.items.length === 0)
+              ? <p className="px-5 py-8 text-sm text-muted-foreground text-center">No items found.</p>
+              : grouped.map(({ category, items: groupItems }) =>
+                  groupItems.length === 0 ? null : (
+                    <div key={category.id} className="border-b last:border-b-0">
+                      <div className="px-5 py-2 bg-muted/40 border-b">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          {category.name}
+                        </span>
+                      </div>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-xs text-muted-foreground uppercase tracking-wide border-b">
+                            <th className="px-5 py-2 font-medium">Image</th>
+                            <th className="px-5 py-2 font-medium">Name</th>
+                            <th className="px-5 py-2 font-medium">Description</th>
+                            <th className="px-5 py-2 font-medium w-24">Price</th>
+                            <th className="px-5 py-2 font-medium">Available</th>
+                            <th className="px-5 py-2" />
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {groupItems.map(item => (
+                            <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                              <td className="px-5 py-3">
+                                {item.imageUrl
+                                  ? <img src={item.imageUrl} alt={item.name} className="w-10 h-10 object-cover rounded-md" />
+                                  : <div className="w-10 h-10 bg-muted rounded-md flex items-center justify-center">
+                                      <span className="text-muted-foreground text-xs">—</span>
+                                    </div>
+                                }
+                              </td>
+                              <td className="px-5 py-3 font-medium">{item.name}</td>
+                              <td className="px-5 py-3 text-muted-foreground">{item.description}</td>
+                              <td className="px-5 py-3 whitespace-nowrap">{item.price.toFixed(2)} €</td>
+                              <td className="px-5 py-3">
+                                <Badge variant={item.available ? 'default' : 'secondary'}>
+                                  {item.available ? 'Available' : 'Hidden'}
+                                </Badge>
+                              </td>
+                              <td className="px-5 py-3">
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button variant="outline" size="sm" onClick={() => openEdit(item)}>Edit</Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => { if (confirm('Delete this item?')) deleteItem.mutate(item.id) }}
+                                  >
+                                    Delete
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                )
+            }
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
 }
