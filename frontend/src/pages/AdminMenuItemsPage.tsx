@@ -1,5 +1,6 @@
 import {useState} from 'react'
 import * as React from 'react'
+import {useQueryClient} from '@tanstack/react-query'
 import {useCategories, useMenuItems, useCreateMenuItem, useUpdateMenuItem, useDeleteMenuItem} from '../hooks/useMenu.ts'
 import type {MenuItem, MenuItemRequest} from '../types/menu.ts'
 import {getImageUploadUrl, uploadImageToS3} from '../api/menu.ts'
@@ -20,6 +21,7 @@ export default function AdminMenuItemsPage() {
 	const [imageFile, setImageFile] = useState<File | null>(null)
 
 
+	const queryClient = useQueryClient()
 	const {data: categories} = useCategories()
 	const {data: items, isLoading, isError} = useMenuItems()
 	const createItem = useCreateMenuItem()
@@ -37,6 +39,7 @@ export default function AdminMenuItemsPage() {
 		if (imageFile) {
 			const {uploadUrl} = await getImageUploadUrl(itemId, imageFile.type)
 			await uploadImageToS3(uploadUrl, imageFile)
+			await queryClient.invalidateQueries({ queryKey: ['menuItems'] })
 		}
 	}
 	const renderImage = (item: MenuItem) => {

@@ -5,18 +5,22 @@ import AdminPanel from './pages/AdminPanel'
 import AdminCategoriesPage from './pages/AdminCategoriesPage'
 import AdminMenuItemsPage from './pages/AdminMenuItemsPage'
 import LoginPage from './pages/LoginPage'
+import Navbar from './components/Navbar'
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<MenuPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/kitchen" element={<KitchenPage />} />
-      <Route path="/admin/menu" element={<AdminPanel />}>
-        <Route index element={<Navigate to="categories" replace />} />
-        <Route path="categories" element={<AdminCategoriesPage />} />
-        <Route path="items" element={<AdminMenuItemsPage />} />
-      </Route>
-    </Routes>
+    <>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<MenuPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/kitchen" element={<KitchenPage />} />
+        <Route path="/admin/menu" element={<AdminPanel />}>
+          <Route index element={<Navigate to="categories" replace />} />
+          <Route path="categories" element={<AdminCategoriesPage />} />
+          <Route path="items" element={<AdminMenuItemsPage />} />
+        </Route>
+      </Routes>
+    </>
   )
 }
