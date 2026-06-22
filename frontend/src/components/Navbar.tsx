@@ -5,7 +5,7 @@ const navLink = ({ isActive }: { isActive: boolean }) =>
   `text-sm transition-colors ${isActive ? 'text-gray-900 font-medium' : 'text-gray-400 hover:text-gray-700'}`
 
 export default function Navbar() {
-  const { isAuthenticated, isAdmin } = useAuth()
+  const { isAuthenticated, isAdmin, role } = useAuth()
   const navigate = useNavigate()
 
   const logout = () => {
@@ -23,6 +23,14 @@ export default function Navbar() {
         )}
         {isAdmin && (
           <NavLink to="/admin" className={navLink}>Admin</NavLink>
+        )}
+        {role === 'KITCHEN' && (
+          <NavLink to="/kitchen" className={navLink}>Kitchen</NavLink>
+        )}
+        {isAuthenticated && role && (
+          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500 font-medium">
+            {role.toLowerCase()}
+          </span>
         )}
         {isAuthenticated ? (
           <button onClick={logout} className="text-sm text-gray-400 hover:text-gray-700 transition-colors">
