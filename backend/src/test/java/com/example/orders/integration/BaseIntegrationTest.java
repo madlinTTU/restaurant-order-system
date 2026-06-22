@@ -71,6 +71,30 @@ public abstract class BaseIntegrationTest {
         return response.substring(start, end);
     }
 
+    protected String registerKitchenAndGetToken(String email, String password) throws Exception {
+        UUID id = UUID.randomUUID();
+        String hash = passwordEncoder.encode(password);
+        jdbcTemplate.update(
+                "INSERT INTO users (uuid, email, password_hash, role, created_by, modified_by) VALUES (?, ?, ?, 'KITCHEN', ?, ?)",
+                id, email, hash, id, id
+        );
+
+        String body = """
+                {"email":"%s","password":"%s"}
+                """.formatted(email, password);
+
+        MvcResult result = mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String response = result.getResponse().getContentAsString();
+        int start = response.indexOf("\"accessToken\":\"") + 15;
+        int end = response.indexOf("\"", start);
+        return response.substring(start, end);
+    }
+
     protected String registerAdminAndGetToken(String email, String password) throws Exception {
         UUID id = UUID.randomUUID();
         String hash = passwordEncoder.encode(password);

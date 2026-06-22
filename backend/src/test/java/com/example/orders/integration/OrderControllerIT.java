@@ -23,12 +23,14 @@ class OrderControllerIT extends BaseIntegrationTest {
 
   private String adminToken;
   private String customerToken;
+  private String kitchenToken;
   private String menuItemId;
 
   @BeforeEach
   void setup() throws Exception {
     adminToken = registerAdminAndGetToken("admin@test.com", "password123");
     customerToken = registerCustomerAndGetToken("customer@test.com", "password123");
+    kitchenToken = registerKitchenAndGetToken("kitchen@test.com", "password123");
     menuItemId = createMenuItem();
   }
 
@@ -100,6 +102,38 @@ class OrderControllerIT extends BaseIntegrationTest {
 
 
   @Test
+  void getActiveOrders_returnsActiveOrders() throws Exception {
+    createOrder(customerToken);
+
+    mockMvc.perform(get("/api/orders/active")
+        .header("Authorization", "Bearer " + kitchenToken))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.length()").value(1))
+      .andExpect(jsonPath("$[0].status").value("PLACED"));
+  }
+
+  @Test
+  void getActiveOrders_adminCanAccess() throws Exception {
+    mockMvc.perform(get("/api/orders/active")
+        .header("Authorization", "Bearer " + adminToken))
+      .andExpect(status().isOk());
+  }
+
+  @Test
+  void getActiveOrders_forbiddenWhenCustomer() throws Exception {
+    mockMvc.perform(get("/api/orders/active")
+        .header("Authorization", "Bearer " + customerToken))
+      .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void getActiveOrders_forbiddenWhenNoToken() throws Exception {
+    mockMvc.perform(get("/api/orders/active"))
+      .andExpect(status().isForbidden());
+  }
+
+
+  @Test
   void getOrders_adminSeesAllOrders() throws Exception {
     createOrder(customerToken);
 
@@ -165,6 +199,19 @@ class OrderControllerIT extends BaseIntegrationTest {
       .andExpect(status().isNotFound());
   }
 
+
+  @Test
+  void updateStatus_kitchenCanAdvanceStatus() throws Exception {
+    String orderId = createOrder(customerToken);
+    UpdateOrderStatusRequest request = new UpdateOrderStatusRequest(OrderStatus.CONFIRMED);
+
+    mockMvc.perform(patch("/api/orders/" + orderId + "/status")
+        .header("Authorization", "Bearer " + kitchenToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").value("CONFIRMED"));
+  }
 
   @Test
   void updateStatus_adminCanAdvanceStatus() throws Exception {

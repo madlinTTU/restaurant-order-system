@@ -105,6 +105,26 @@ class OrderServiceTest {
 
 
   @Test
+  void getActiveOrders_returnsOnlyActiveStatuses() {
+    UUID userId = UUID.randomUUID();
+    Order order = TestFactory.order(userId);
+    OrderResponse response = TestFactory.orderResponse(order);
+
+    when(orderRepository.findAllByOrderStatusIn(argThat(statuses ->
+        statuses.contains(OrderStatus.PLACED) &&
+        statuses.contains(OrderStatus.CONFIRMED) &&
+        statuses.contains(OrderStatus.PREPARING) &&
+        statuses.contains(OrderStatus.READY) &&
+        !statuses.contains(OrderStatus.DELIVERED)
+    ))).thenReturn(List.of(order));
+    when(orderMapper.toResponse(order)).thenReturn(response);
+
+    List<OrderResponse> result = orderService.getActiveOrders();
+
+    assertThat(result).isEqualTo(List.of(response));
+  }
+
+  @Test
   void getOrders_returnsAllOrdersForAdmin() {
     UUID userId = UUID.randomUUID();
     Order order = TestFactory.order(userId);
