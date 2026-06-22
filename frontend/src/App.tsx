@@ -1,4 +1,4 @@
-import { Navigate, Routes, Route } from 'react-router-dom'
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import { CartProvider } from '@/contexts/CartContext'
 import MenuPage from './pages/MenuPage'
 import KitchenPage from './pages/KitchenPage'
@@ -12,10 +12,13 @@ import Navbar from './components/Navbar'
 import CartSheet from './components/Cart'
 
 export default function App() {
+  const location = useLocation()
+  const hideNav = location.pathname === '/login'
+
   return (
     <CartProvider>
-      <Navbar />
-      <CartSheet />
+      {!hideNav && <Navbar />}
+      {!hideNav && <CartSheet />}
       <Routes>
         <Route path="/" element={<MenuPage />} />
         <Route path="/login" element={<LoginPage />} />
