@@ -8,6 +8,7 @@ import AdminMenuItemsPage from './pages/AdminMenuItemsPage'
 import AdminUsersPage from './pages/AdminUsersPage'
 import LoginPage from './pages/LoginPage'
 import MyOrdersPage from './pages/MyOrdersPage'
+import MenuItemPage from './pages/MenuItemPage'
 import Navbar from './components/Navbar'
 import CartSheet from './components/Cart'
 
@@ -21,6 +22,7 @@ export default function App() {
       {!hideNav && <CartSheet />}
       <Routes>
         <Route path="/" element={<MenuPage />} />
+        <Route path="/menu/:id" element={<MenuItemPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/orders" element={<MyOrdersPage />} />
         <Route path="/kitchen" element={<KitchenPage />} />
