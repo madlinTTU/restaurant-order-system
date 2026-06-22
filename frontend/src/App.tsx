@@ -1,4 +1,5 @@
 import { Navigate, Routes, Route } from 'react-router-dom'
+import { CartProvider } from '@/contexts/CartContext'
 import MenuPage from './pages/MenuPage'
 import KitchenPage from './pages/KitchenPage'
 import AdminPanel from './pages/AdminPanel'
@@ -8,11 +9,13 @@ import AdminUsersPage from './pages/AdminUsersPage'
 import LoginPage from './pages/LoginPage'
 import MyOrdersPage from './pages/MyOrdersPage'
 import Navbar from './components/Navbar'
+import CartSheet from './components/Cart'
 
 export default function App() {
   return (
-    <>
+    <CartProvider>
       <Navbar />
+      <CartSheet />
       <Routes>
         <Route path="/" element={<MenuPage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -25,6 +28,6 @@ export default function App() {
           <Route path="users" element={<AdminUsersPage />} />
         </Route>
       </Routes>
-    </>
+    </CartProvider>
   )
 }

@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { ACTIVE_STATUSES } from '../types/order'
-import type { OrderResponse } from '../types/order'
-import { useOrderSocket } from '../hooks/useOrderSocket'
+import { ACTIVE_STATUSES } from '@/types/order'
+import type { OrderResponse } from '@/types/order'
+import { useOrderSocket } from '@/hooks/useOrderSocket'
+import { Button } from '@/components/ui/button'
 import OrderStatusBadge from './OrderStatusBadge'
 
 interface Props {
@@ -15,24 +16,21 @@ export default function OrderRow({ order, onView }: Readonly<Props>) {
   useOrderSocket(ACTIVE_STATUSES.has(status) ? order.id : null, setStatus)
 
   return (
-    <tr className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-      <td className="py-3 px-4 text-xs font-mono text-gray-400">{order.id.slice(0, 8)}…</td>
-      <td className="py-3 px-4 text-sm text-gray-600">
+    <tr className="border-t hover:bg-muted/50 transition-colors">
+      <td className="py-3 px-4 text-xs font-mono text-muted-foreground">{order.id.slice(0, 8)}…</td>
+      <td className="py-3 px-4 text-sm text-muted-foreground">
         {new Date(order.createdAt).toLocaleString()}
       </td>
       <td className="py-3 px-4">
         <OrderStatusBadge status={status} />
       </td>
-      <td className="py-3 px-4 text-sm font-medium text-gray-900 text-right">
-        ${order.totalPrice.toFixed(2)}
+      <td className="py-3 px-4 text-sm font-medium text-right">
+        {order.totalPrice.toFixed(2)} €
       </td>
       <td className="py-3 px-4 text-right">
-        <button
-          onClick={() => onView({ ...order, status })}
-          className="text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-        >
+        <Button variant="outline" size="sm" onClick={() => onView({ ...order, status })}>
           View
-        </button>
+        </Button>
       </td>
     </tr>
   )
