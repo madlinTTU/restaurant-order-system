@@ -1,52 +1,24 @@
 import { NavLink, Outlet } from 'react-router-dom'
 
+const tabClass = ({ isActive }: { isActive: boolean }) =>
+  `px-4 py-2 text-sm transition-colors border-b-2 -mb-px ${
+    isActive
+      ? 'font-medium text-foreground border-foreground'
+      : 'text-muted-foreground border-transparent hover:text-foreground'
+  }`
+
 export default function AdminPanel() {
-	return (
-		<div className="min-h-screen bg-gray-50">
-			<div className="max-w-4xl mx-auto px-4 py-8">
-				<h1 className="text-xl font-semibold text-gray-900 mb-6">Admin Panel</h1>
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <h1 className="text-xl font-semibold mb-6">Admin Panel</h1>
 
-				<div className="flex gap-1 mb-6 border-b border-gray-200">
-					<NavLink
-						to="categories"
-						className={({ isActive }) =>
-							`px-4 py-2 text-sm transition-colors ${
-								isActive
-									? 'font-medium text-gray-900 border-b-2 border-gray-900 -mb-px'
-									: 'text-gray-500 hover:text-gray-900'
-							}`
-						}
-					>
-						Categories
-					</NavLink>
-					<NavLink
-						to="items"
-						className={({ isActive }) =>
-							`px-4 py-2 text-sm transition-colors ${
-								isActive
-									? 'font-medium text-gray-900 border-b-2 border-gray-900 -mb-px'
-									: 'text-gray-500 hover:text-gray-900'
-							}`
-						}
-					>
-						Items
-					</NavLink>
-					<NavLink
-						to="users"
-						className={({ isActive }) =>
-							`px-4 py-2 text-sm transition-colors ${
-								isActive
-									? 'font-medium text-gray-900 border-b-2 border-gray-900 -mb-px'
-									: 'text-gray-500 hover:text-gray-900'
-							}`
-						}
-					>
-						Users
-					</NavLink>
-				</div>
+      <div className="flex gap-1 mb-6 border-b">
+        <NavLink to="categories" className={tabClass}>Categories</NavLink>
+        <NavLink to="items" className={tabClass}>Items</NavLink>
+        <NavLink to="users" className={tabClass}>Users</NavLink>
+      </div>
 
-				<Outlet />
-			</div>
-		</div>
-	)
+      <Outlet />
+    </div>
+  )
 }
