@@ -61,10 +61,9 @@ public class OrderController {
     @ApiResponse(responseCode = "403", description = "Admin role required", content = @Content)
     @ApiResponse(responseCode = "404", description = "Order not found", content = @Content)
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
-    public OrderResponse updateStatus(@PathVariable UUID id,
-                                      @Valid @RequestBody UpdateOrderStatusRequest request,
-                                      @AuthenticationPrincipal String userId) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'KITCHEN')")
+    public OrderResponse updateStatus(@PathVariable UUID id, @Valid @RequestBody UpdateOrderStatusRequest request,
+            @AuthenticationPrincipal String userId) {
         return orderService.updateStatus(id, request.status(), UUID.fromString(userId));
     }
 }

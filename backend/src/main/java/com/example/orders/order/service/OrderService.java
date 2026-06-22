@@ -108,6 +108,13 @@ public class OrderService {
     }
   }
 
+  public List<OrderResponse> getActiveOrders() {
+    List<OrderStatus> activeStatuses = List.of(OrderStatus.PLACED, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY);
+    return orderRepository.findAllByOrderStatusIn(activeStatuses).stream()
+        .map(orderMapper::toResponse)
+        .toList();
+  }
+
   public List<OrderResponse> getOrders(UUID currentUserId) {
     if (securityUtils.isAdmin()) {
       return orderRepository.findAll().stream()
