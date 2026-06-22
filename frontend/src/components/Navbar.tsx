@@ -9,6 +9,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 export default function Navbar() {
   const { isAuthenticated, isAdmin, role } = useAuth()
+  const { totalItems, setIsOpen } = useCart()
   const navigate = useNavigate()
 
   const logout = () => {
@@ -29,7 +30,7 @@ export default function Navbar() {
           <NavLink to="/admin" className={navLinkClass}>Admin</NavLink>
         )}
         {role === 'KITCHEN' && (
-          <NavLink to="/kitchen" className={navLink}>Kitchen</NavLink>
+          <NavLink to="/kitchen" className={navLinkClass}>Kitchen</NavLink>
         )}
         {isAuthenticated && role && (
           <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500 font-medium">

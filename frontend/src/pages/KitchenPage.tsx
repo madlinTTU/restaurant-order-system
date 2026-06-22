@@ -11,32 +11,46 @@ export default function KitchenPage() {
     queryClient.invalidateQueries({ queryKey: ['activeOrders'] })
   })
 
-  if (isLoading) return <p className="p-6 text-sm text-gray-400">Loading...</p>
-  if (isError) return <p className="p-6 text-sm text-red-500">Failed to load orders.</p>
+  if (isLoading) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <p className="text-sm text-muted-foreground">Loading orders...</p>
+    </div>
+  )
+
+  if (isError) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <p className="text-sm text-destructive">Failed to load orders.</p>
+    </div>
+  )
 
   const sorted = [...(orders ?? [])].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <h1 className="text-xl font-semibold text-gray-900 mb-6">Kitchen Dashboard</h1>
-
-        {sorted.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-16">No active orders.</p>
-        ) : (
-          <div className="space-y-3">
-            {sorted.map(order => (
-              <KitchenOrderCard
-                key={order.id}
-                order={order}
-                onAdvance={(id, status) => updateStatus.mutate({ id, status })}
-              />
-            ))}
-          </div>
-        )}
+    <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-xl font-semibold">Kitchen Dashboard</h1>
+        <span className="text-sm text-muted-foreground">
+          {sorted.length} active {sorted.length === 1 ? 'order' : 'orders'}
+        </span>
       </div>
+
+      {sorted.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <p className="text-muted-foreground text-sm">No active orders right now.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {sorted.map(order => (
+            <KitchenOrderCard
+              key={order.id}
+              order={order}
+              onAdvance={(id, status) => updateStatus.mutate({ id, status })}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
