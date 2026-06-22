@@ -5,6 +5,7 @@ import AdminPanel from './pages/AdminPanel'
 import AdminCategoriesPage from './pages/AdminCategoriesPage'
 import AdminMenuItemsPage from './pages/AdminMenuItemsPage'
 import LoginPage from './pages/LoginPage'
+import MyOrdersPage from './pages/MyOrdersPage'
 import Navbar from './components/Navbar'
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<MenuPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/orders" element={<MyOrdersPage />} />
         <Route path="/kitchen" element={<KitchenPage />} />
         <Route path="/admin/menu" element={<AdminPanel />}>
           <Route index element={<Navigate to="categories" replace />} />
