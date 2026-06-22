@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useOrders } from '@/hooks/useOrders'
 import type { OrderResponse } from '@/types/order'
 import { ACTIVE_STATUSES } from '@/types/order'
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 
 function OrderCard({ order, onView }: { order: OrderResponse; onView: (o: OrderResponse) => void }) {
   const [status, setStatus] = useState(order.status)
+  useEffect(() => { setStatus(order.status) }, [order.status])
   useOrderSocket(ACTIVE_STATUSES.has(status) ? order.id : null, setStatus)
 
   return (

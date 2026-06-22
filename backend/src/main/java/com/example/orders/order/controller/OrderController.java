@@ -45,6 +45,16 @@ public class OrderController {
         return orderService.getOrders(UUID.fromString(userId));
     }
 
+    @Operation(summary = "Get all active orders (for kitchen staff)")
+    @ApiResponse(responseCode = "200", description = "List of active orders")
+    @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content)
+    @ApiResponse(responseCode = "403", description = "Kitchen or Admin role required", content = @Content)
+    @GetMapping("/active")
+    @PreAuthorize("hasAnyRole('ADMIN', 'KITCHEN')")
+    public List<OrderResponse> getActiveOrders() {
+        return orderService.getActiveOrders();
+    }
+
     @Operation(summary = "Get a specific order by ID")
     @ApiResponse(responseCode = "200", description = "Order found")
     @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content)
