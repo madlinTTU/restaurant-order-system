@@ -13,7 +13,7 @@ public class OrderEventConsumer {
 
     @KafkaListener(topics = "${kafka.topic.order-status-events}")
     public void consume(OrderStatusEvent event) {
-        String destination = "/topic/orders/" + event.payload().orderId();
-        messagingTemplate.convertAndSend(destination, event);
+        messagingTemplate.convertAndSend("/topic/orders/" + event.payload().orderId(), event);
+        messagingTemplate.convertAndSend("/topic/kitchen", event);
     }
 }

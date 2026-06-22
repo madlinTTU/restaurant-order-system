@@ -32,13 +32,19 @@ public class OrderController {
         return orderService.getOrders(UUID.fromString(userId));
     }
 
+    @GetMapping("/active")
+    @PreAuthorize("hasAnyRole('ADMIN', 'KITCHEN')")
+    public List<OrderResponse> getActiveOrders() {
+        return orderService.getActiveOrders();
+    }
+
     @GetMapping("/{id}")
     public OrderResponse getOrder(@PathVariable UUID id, @AuthenticationPrincipal String userId) {
         return orderService.getOrder(id, UUID.fromString(userId));
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'KITCHEN')")
     public OrderResponse updateStatus(@PathVariable UUID id, @Valid @RequestBody UpdateOrderStatusRequest request,
             @AuthenticationPrincipal String userId) {
         return orderService.updateStatus(id, request.status(), UUID.fromString(userId));
