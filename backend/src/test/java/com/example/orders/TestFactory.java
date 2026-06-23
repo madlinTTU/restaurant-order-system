@@ -107,6 +107,7 @@ public class TestFactory {
         category.setId(UUID.randomUUID());
         category.setName("Burgers");
         category.setDescription("All our burgers");
+        category.setPosition(0);
         category.setCreatedAt(OffsetDateTime.now());
         category.setModifiedAt(OffsetDateTime.now());
         category.setCreatedBy(UUID.randomUUID());
@@ -116,7 +117,7 @@ public class TestFactory {
     }
 
     public static CategoryResponse categoryResponse(MenuCategory category) {
-        return new CategoryResponse(category.getId(), category.getName(), category.getDescription());
+        return new CategoryResponse(category.getId(), category.getName(), category.getDescription(), category.getPosition());
     }
 
     // --- Menu items ---
@@ -142,7 +143,8 @@ public class TestFactory {
                 item.getDescription(),
                 item.getPrice(),
                 item.getImageUrl(),
-                item.isAvailable()
+                item.isAvailable(),
+                item.getPosition()
         );
     }
 
@@ -154,6 +156,7 @@ public class TestFactory {
         item.setDescription("Beef patty");
         item.setPrice(new BigDecimal("9.99"));
         item.setAvailable(true);
+        item.setPosition(0);
         item.setCreatedAt(OffsetDateTime.now());
         item.setModifiedAt(OffsetDateTime.now());
         item.setCreatedBy(UUID.randomUUID());
