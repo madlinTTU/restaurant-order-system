@@ -4,6 +4,7 @@ import com.example.orders.exception.ResourceNotFoundException;
 import com.example.orders.menu.dto.ImageUploadUrlResponse;
 import com.example.orders.menu.dto.MenuItemRequest;
 import com.example.orders.menu.dto.MenuItemResponse;
+import com.example.orders.menu.dto.PositionEntry;
 import com.example.orders.menu.mapper.MenuItemMapper;
 import com.example.orders.menu.model.MenuCategory;
 import com.example.orders.menu.model.MenuItem;
@@ -15,11 +16,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Transactional (readOnly = true)
+@Transactional(readOnly = true)
 public class MenuItemService {
 
     private final MenuItemRepository itemRepository;
@@ -28,7 +31,7 @@ public class MenuItemService {
     private final StorageService storageService;
 
     public List<MenuItemResponse> getAll() {
-        return itemRepository.findAll().stream()
+        return itemRepository.findAllByOrderByCategoryIdAscPositionAsc().stream()
                 .map(itemMapper::toResponse)
                 .toList();
     }
@@ -42,9 +45,12 @@ public class MenuItemService {
     @Transactional
     public MenuItemResponse create(MenuItemRequest request, UUID currentUserId) {
         MenuCategory category = findCategory(request.categoryId());
-        return itemMapper.toResponse(
-                itemRepository.save(itemMapper.toEntity(request, category, currentUserId))
-        );
+        MenuItem entity = itemMapper.toEntity(request, category, currentUserId);
+        int nextPosition = itemRepository.findTopByCategoryIdOrderByPositionDesc(category.getId())
+                .map(max -> max + 1)
+                .orElse(0);
+        entity.setPosition(nextPosition);
+        return itemMapper.toResponse(itemRepository.save(entity));
     }
 
     @Transactional
@@ -76,6 +82,22 @@ public class MenuItemService {
 
         item.setImageUrl(publicUrl);
         return new ImageUploadUrlResponse(uploadUrl);
+    }
+
+    @Transactional
+    public void updatePositions(List<PositionEntry> entries) {
+        Map<UUID, MenuItem> items = itemRepository.findAllById(
+                entries.stream().map(PositionEntry::id).toList()
+        ).stream().collect(Collectors.toMap(MenuItem::getId, i -> i));
+
+        entries.forEach(entry -> {
+            MenuItem item = items.get(entry.id());
+            if (item != null) {
+                item.setPosition(entry.position());
+            }
+        });
+
+        itemRepository.saveAll(items.values());
     }
 
     private MenuCategory findCategory(UUID categoryId) {

@@ -22,5 +22,7 @@ public record MenuItemResponse(
         @Schema(description = "Public URL of the item image")
         String imageUrl,
         @Schema(description = "Whether the item is available for ordering", example = "true")
-        boolean available
+        boolean available,
+        @Schema(description = "Position within the category", example = "0")
+        int position
 ) {}

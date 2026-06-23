@@ -11,5 +11,7 @@ public record CategoryResponse(
         @Schema(description = "Category name", example = "Burgers")
         String name,
         @Schema(description = "Category description", example = "Juicy burgers made fresh daily")
-        String description
+        String description,
+        @Schema(description = "Position in the category list", example = "0")
+        int position
 ) {}
