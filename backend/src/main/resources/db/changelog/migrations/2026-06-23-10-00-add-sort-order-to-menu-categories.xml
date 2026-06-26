@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="2026-06-23-10-00-add-position-to-menu-categories" author="mark">
+        <addColumn tableName="menu_categories">
+            <column name="position" type="INT"/>
+        </addColumn>
+
+        <sql>
+            UPDATE menu_categories
+            SET position = sub.rn - 1
+            FROM (
+                SELECT uuid, ROW_NUMBER() OVER (ORDER BY created_at) AS rn
+                FROM menu_categories
+            ) sub
+            WHERE menu_categories.uuid = sub.uuid
+        </sql>
+
+        <addNotNullConstraint tableName="menu_categories" columnName="position" columnDataType="INT"/>
+        <addUniqueConstraint tableName="menu_categories" columnNames="position"
+                             constraintName="uq_menu_categories_position"/>
+    </changeSet>
+
+</databaseChangeLog>

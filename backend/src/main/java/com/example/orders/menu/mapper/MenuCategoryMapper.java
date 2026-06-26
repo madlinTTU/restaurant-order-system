@@ -18,6 +18,7 @@ public interface MenuCategoryMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "modifiedAt", ignore = true)
     @Mapping(target = "version", ignore = true)
+    @Mapping(target = "position", ignore = true)
     @Mapping(target = "createdBy", source = "currentUserId")
     @Mapping(target = "modifiedBy", source = "currentUserId")
     MenuCategory toEntity(CategoryRequest request, UUID currentUserId);
@@ -27,6 +28,7 @@ public interface MenuCategoryMapper {
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "modifiedAt", ignore = true)
     @Mapping(target = "version", ignore = true)
+    @Mapping(target = "position", ignore = true)
     @Mapping(target = "modifiedBy", source = "currentUserId")
     void updateEntity(CategoryRequest request, UUID currentUserId, @MappingTarget MenuCategory category);
 }

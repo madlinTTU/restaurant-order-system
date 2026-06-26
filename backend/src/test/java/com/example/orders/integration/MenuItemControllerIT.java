@@ -2,6 +2,7 @@ package com.example.orders.integration;
 
 import com.example.orders.TestFactory;
 import com.example.orders.menu.dto.MenuItemRequest;
+import com.example.orders.menu.dto.PositionEntry;
 import com.example.orders.storage.StorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -241,5 +243,31 @@ class MenuItemControllerIT extends BaseIntegrationTest {
                     .header("Authorization", "Bearer " + adminToken)
                     .param("contentType", "video/mp4"))
             .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updatePositions_noContent() throws Exception {
+    String id1 = createItem(adminToken, UUID.fromString(categoryId));
+    String id2 = createItem(adminToken, UUID.fromString(categoryId));
+
+    List<PositionEntry> entries = List.of(
+      new PositionEntry(UUID.fromString(id1), 1),
+      new PositionEntry(UUID.fromString(id2), 0)
+    );
+
+    mockMvc.perform(patch("/api/menu/items/positions")
+        .header("Authorization", "Bearer " + adminToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(entries)))
+      .andExpect(status().isNoContent());
+  }
+
+  @Test
+  void updatePositions_forbiddenWhenNotAdmin() throws Exception {
+    mockMvc.perform(patch("/api/menu/items/positions")
+        .header("Authorization", "Bearer " + customerToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(List.of())))
+      .andExpect(status().isForbidden());
   }
 }

@@ -22,13 +22,14 @@ public interface MenuItemMapper {
     @Mapping(target = "modifiedAt", ignore = true)
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "imageUrl", ignore = true)
+    @Mapping(target = "position", source = "position")
     @Mapping(target = "name", source = "request.name")
     @Mapping(target = "description", source = "request.description")
     @Mapping(target = "createdBy", source = "currentUserId")
     @Mapping(target = "modifiedBy", source = "currentUserId")
     @Mapping(target = "category", source = "category")
     @Mapping(target = "available", expression = "java(request.available() == null || request.available())")
-    MenuItem toEntity(MenuItemRequest request, MenuCategory category, UUID currentUserId);
+    MenuItem toEntity(MenuItemRequest request, MenuCategory category, int position, UUID currentUserId);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
@@ -36,6 +37,7 @@ public interface MenuItemMapper {
     @Mapping(target = "modifiedAt", ignore = true)
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "imageUrl", ignore = true)
+    @Mapping(target = "position", ignore = true)
     @Mapping(target = "available", ignore = true)
     @Mapping(target = "name", source = "request.name")
     @Mapping(target = "description", source = "request.description")

@@ -5,6 +5,7 @@ import com.example.orders.exception.ResourceNotFoundException;
 import com.example.orders.menu.dto.ImageUploadUrlResponse;
 import com.example.orders.menu.dto.MenuItemRequest;
 import com.example.orders.menu.dto.MenuItemResponse;
+import com.example.orders.menu.dto.PositionEntry;
 import com.example.orders.menu.mapper.MenuItemMapper;
 import com.example.orders.menu.model.MenuCategory;
 import com.example.orders.menu.model.MenuItem;
@@ -23,6 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,7 +47,7 @@ class MenuItemServiceTest {
     MenuItem item = TestFactory.menuItem(TestFactory.menuCategory());
     MenuItemResponse response = TestFactory.menuItemResponse(item);
 
-    when(itemRepository.findAll()).thenReturn(List.of(item));
+    when(itemRepository.findAllByOrderByCategoryIdAscPositionAsc()).thenReturn(List.of(item));
     when(itemMapper.toResponse(item)).thenReturn(response);
 
     List<MenuItemResponse> responseItems = itemService.getAll();
@@ -77,11 +79,12 @@ class MenuItemServiceTest {
     MenuCategory category = TestFactory.menuCategory();
     UUID userId = UUID.randomUUID();
     MenuItemRequest request = TestFactory.menuItemRequest(category.getId());
-    MenuItem item =TestFactory.menuItem(category);
+    MenuItem item = TestFactory.menuItem(category);
     MenuItemResponse response = TestFactory.menuItemResponse(item);
 
     when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
-    when(itemMapper.toEntity(request, category, userId)).thenReturn(item);
+    when(itemMapper.toEntity(eq(request), eq(category), anyInt(), eq(userId))).thenReturn(item);
+    when(itemRepository.findTopByCategoryIdOrderByPositionDesc(category.getId())).thenReturn(Optional.empty());
     when(itemRepository.save(item)).thenReturn(item);
     when(itemMapper.toResponse(item)).thenReturn(response);
 
@@ -89,6 +92,28 @@ class MenuItemServiceTest {
 
     assertThat(result).isEqualTo(response);
     verify(itemRepository).save(item);
+  }
+
+  @Test
+  void create_setsNextPositionWithinCategory() {
+    MenuCategory category = TestFactory.menuCategory();
+    UUID userId = UUID.randomUUID();
+    MenuItemRequest request = TestFactory.menuItemRequest(category.getId());
+    MenuItem item = TestFactory.menuItem(category);
+    MenuItemResponse response = TestFactory.menuItemResponse(item);
+
+    MenuItem existing = TestFactory.menuItem(category);
+    existing.setPosition(3);
+
+    when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
+    when(itemMapper.toEntity(eq(request), eq(category), eq(4), eq(userId))).thenReturn(item);
+    when(itemRepository.findTopByCategoryIdOrderByPositionDesc(category.getId())).thenReturn(Optional.of(existing));
+    when(itemRepository.save(item)).thenReturn(item);
+    when(itemMapper.toResponse(item)).thenReturn(response);
+
+    itemService.create(request, userId);
+
+    verify(itemMapper).toEntity(eq(request), eq(category), eq(4), eq(userId));
   }
 
   @Test
@@ -103,7 +128,7 @@ class MenuItemServiceTest {
     MenuCategory category = TestFactory.menuCategory();
     UUID userId = UUID.randomUUID();
     MenuItemRequest request = TestFactory.menuItemRequest(category.getId());
-    MenuItem item =TestFactory.menuItem(category);
+    MenuItem item = TestFactory.menuItem(category);
     MenuItemResponse response = TestFactory.menuItemResponse(item);
 
     when(itemRepository.findById(item.getId())).thenReturn(Optional.of(item));
@@ -169,5 +194,24 @@ class MenuItemServiceTest {
     assertThat(result.uploadUrl()).isEqualTo(presignedUrl);
     verify(storageService).generateKey(item.getId(), contentType);
   }
-}
 
+  @Test
+  void updatePositions_updatesPositionOnEachItem() {
+    MenuCategory category = TestFactory.menuCategory();
+    MenuItem item1 = TestFactory.menuItem(category);
+    MenuItem item2 = TestFactory.menuItem(category);
+
+    List<PositionEntry> entries = List.of(
+      new PositionEntry(item1.getId(), 1),
+      new PositionEntry(item2.getId(), 0)
+    );
+
+    when(itemRepository.findAllById(any())).thenReturn(List.of(item1, item2));
+
+    itemService.updatePositions(entries);
+
+    assertThat(item1.getPosition()).isEqualTo(1);
+    assertThat(item2.getPosition()).isEqualTo(0);
+    verify(itemRepository).saveAll(any());
+  }
+}

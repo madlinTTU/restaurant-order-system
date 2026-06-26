@@ -2,6 +2,7 @@ package com.example.orders.menu.controller;
 
 import com.example.orders.menu.dto.CategoryRequest;
 import com.example.orders.menu.dto.CategoryResponse;
+import com.example.orders.menu.dto.PositionEntry;
 import com.example.orders.menu.service.MenuCategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -10,12 +11,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+
+import static org.springframework.http.ResponseEntity.noContent;
 
 @Tag(name = "Menu - Categories")
 @RestController
@@ -73,5 +77,16 @@ public class MenuCategoryController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {
         categoryService.delete(id);
+    }
+
+    @Operation(summary = "Update positions of menu categories")
+    @ApiResponse(responseCode = "204", description = "Positions updated")
+    @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content)
+    @ApiResponse(responseCode = "403", description = "Admin role required", content = @Content)
+    @PatchMapping("/positions")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> updatePositions(@Valid @RequestBody List<PositionEntry> entries) {
+        categoryService.updatePositions(entries);
+        return noContent().build();
     }
 }

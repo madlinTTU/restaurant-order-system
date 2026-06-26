@@ -17,3 +17,12 @@ databaseChangeLog:
   - include:
       file: db/changelog/migrations/2026-06-08-10-05-create-order-events.xml
       relativeToChangelogFile: false
+  - include:
+      file: db/changelog/migrations/2026-06-23-10-00-add-sort-order-to-menu-categories.xml
+      relativeToChangelogFile: false
+  - include:
+      file: db/changelog/migrations/2026-06-23-10-01-add-sort-order-to-menu-items.xml
+      relativeToChangelogFile: false
+  - include:
+      file: db/changelog/migrations/2026-06-26-10-00-drop-position-unique-constraints.xml
+      relativeToChangelogFile: false

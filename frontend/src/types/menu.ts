@@ -2,6 +2,7 @@ export interface MenuCategory {
 	id: string
 	name: string
 	description: string
+	position: number
 }
 
 export interface MenuCategoryRequest {
@@ -18,6 +19,7 @@ export interface MenuItem {
 	price: number
 	imageUrl: string | null
 	available: boolean
+	position: number
 }
 
 export interface MenuItemRequest {

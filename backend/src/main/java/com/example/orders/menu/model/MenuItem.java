@@ -50,6 +50,9 @@ public class MenuItem {
     @Column(name = "modified_by", nullable = false)
     private UUID modifiedBy;
 
+    @Column(name = "position", nullable = false)
+    private int position;
+
     @Version
     @Column(nullable = false)
     private Long version;

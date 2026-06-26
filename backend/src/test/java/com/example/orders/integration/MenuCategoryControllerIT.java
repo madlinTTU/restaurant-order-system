@@ -2,6 +2,7 @@ package com.example.orders.integration;
 
 import com.example.orders.TestFactory;
 import com.example.orders.menu.dto.CategoryRequest;
+import com.example.orders.menu.dto.PositionEntry;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.ObjectMapper;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -168,5 +170,39 @@ class MenuCategoryControllerIT extends BaseIntegrationTest {
     mockMvc.perform(delete("/api/menu/categories/" + UUID.randomUUID())
         .header("Authorization", "Bearer " + adminToken))
       .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void updatePositions_noContent() throws Exception {
+    MvcResult r1 = mockMvc.perform(post("/api/menu/categories")
+        .header("Authorization", "Bearer " + adminToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(TestFactory.categoryRequest("Burgers"))))
+      .andExpect(status().isCreated()).andReturn();
+    MvcResult r2 = mockMvc.perform(post("/api/menu/categories")
+        .header("Authorization", "Bearer " + adminToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(TestFactory.categoryRequest("Pizza"))))
+      .andExpect(status().isCreated()).andReturn();
+
+    UUID id1 = UUID.fromString(objectMapper.readTree(r1.getResponse().getContentAsString()).get("id").asText());
+    UUID id2 = UUID.fromString(objectMapper.readTree(r2.getResponse().getContentAsString()).get("id").asText());
+
+    List<PositionEntry> entries = List.of(new PositionEntry(id1, 1), new PositionEntry(id2, 0));
+
+    mockMvc.perform(patch("/api/menu/categories/positions")
+        .header("Authorization", "Bearer " + adminToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(entries)))
+      .andExpect(status().isNoContent());
+  }
+
+  @Test
+  void updatePositions_forbiddenWhenNotAdmin() throws Exception {
+    mockMvc.perform(patch("/api/menu/categories/positions")
+        .header("Authorization", "Bearer " + customerToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(List.of())))
+      .andExpect(status().isForbidden());
   }
 }

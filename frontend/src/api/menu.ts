@@ -53,3 +53,11 @@ export const uploadImageToS3 = async (uploadUrl: string, file: File): Promise<vo
 		headers: { 'Content-Type': file.type || 'application/octet-stream' },
 	})
 }
+
+export const updateCategoryPositions = async (entries: { id: string; position: number }[]): Promise<void> => {
+	await api.patch('/menu/categories/positions', entries)
+}
+
+export const updateItemPositions = async (entries: { id: string; position: number }[]): Promise<void> => {
+	await api.patch('/menu/items/positions', entries)
+}
