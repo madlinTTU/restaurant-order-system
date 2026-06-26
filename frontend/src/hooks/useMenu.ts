@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getMenuItems, getCategories, createCategory, updateCategory, deleteCategory, createMenuItem, updateMenuItem, deleteMenuItem } from '../api/menu.ts'
+import { getMenuItems, getCategories, createCategory, updateCategory, deleteCategory, createMenuItem, updateMenuItem, deleteMenuItem, updateCategoryPositions, updateItemPositions } from '../api/menu.ts'
 import type { MenuCategoryRequest, MenuItemRequest } from "../types/menu.ts";
 
 export const useMenuItems = () =>
@@ -60,6 +60,22 @@ export const useDeleteMenuItem = () => {
 	const queryClient = useQueryClient()
 	return useMutation({
 		mutationFn: deleteMenuItem,
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['menuItems'] }),
+	})
+}
+
+export const useUpdateCategoryPositions = () => {
+	const queryClient = useQueryClient()
+	return useMutation({
+		mutationFn: updateCategoryPositions,
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categories'] }),
+	})
+}
+
+export const useUpdateItemPositions = () => {
+	const queryClient = useQueryClient()
+	return useMutation({
+		mutationFn: updateItemPositions,
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['menuItems'] }),
 	})
 }

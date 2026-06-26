@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="2026-06-26-10-00-drop-position-unique-constraints" author="mark">
+        <dropUniqueConstraint tableName="menu_categories" constraintName="uq_menu_categories_position"/>
+        <dropUniqueConstraint tableName="menu_items" constraintName="uq_menu_items_category_position"/>
+    </changeSet>
+
+</databaseChangeLog>
