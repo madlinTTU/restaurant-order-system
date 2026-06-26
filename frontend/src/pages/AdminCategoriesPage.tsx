@@ -24,7 +24,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
 const emptyForm = { name: '', description: '' }
 
-function SortableCategoryRow({ category }: { category: MenuCategory }) {
+function SortableCategoryRow({ category }: Readonly<{ category: MenuCategory }>) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id })
   const style = {
     transform: CSS.Transform.toString(transform),
