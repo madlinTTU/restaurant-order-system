@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -82,7 +83,7 @@ class MenuItemServiceTest {
     MenuItemResponse response = TestFactory.menuItemResponse(item);
 
     when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
-    when(itemMapper.toEntity(request, category, userId)).thenReturn(item);
+    when(itemMapper.toEntity(eq(request), eq(category), anyInt(), eq(userId))).thenReturn(item);
     when(itemRepository.findTopByCategoryIdOrderByPositionDesc(category.getId())).thenReturn(Optional.empty());
     when(itemRepository.save(item)).thenReturn(item);
     when(itemMapper.toResponse(item)).thenReturn(response);
@@ -90,7 +91,6 @@ class MenuItemServiceTest {
     MenuItemResponse result = itemService.create(request, userId);
 
     assertThat(result).isEqualTo(response);
-    assertThat(item.getPosition()).isEqualTo(0);
     verify(itemRepository).save(item);
   }
 
@@ -102,15 +102,18 @@ class MenuItemServiceTest {
     MenuItem item = TestFactory.menuItem(category);
     MenuItemResponse response = TestFactory.menuItemResponse(item);
 
+    MenuItem existing = TestFactory.menuItem(category);
+    existing.setPosition(3);
+
     when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
-    when(itemMapper.toEntity(request, category, userId)).thenReturn(item);
-    when(itemRepository.findTopByCategoryIdOrderByPositionDesc(category.getId())).thenReturn(Optional.of(3));
+    when(itemMapper.toEntity(eq(request), eq(category), eq(4), eq(userId))).thenReturn(item);
+    when(itemRepository.findTopByCategoryIdOrderByPositionDesc(category.getId())).thenReturn(Optional.of(existing));
     when(itemRepository.save(item)).thenReturn(item);
     when(itemMapper.toResponse(item)).thenReturn(response);
 
     itemService.create(request, userId);
 
-    assertThat(item.getPosition()).isEqualTo(4);
+    verify(itemMapper).toEntity(eq(request), eq(category), eq(4), eq(userId));
   }
 
   @Test

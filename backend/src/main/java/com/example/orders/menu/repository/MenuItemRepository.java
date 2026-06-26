@@ -13,5 +13,5 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, UUID> {
 
     List<MenuItem> findAllByOrderByCategoryIdAscPositionAsc();
 
-    Optional<Integer> findTopByCategoryIdOrderByPositionDesc(UUID categoryId);
+    Optional<MenuItem> findTopByCategoryIdOrderByPositionDesc(UUID categoryId);
 }
