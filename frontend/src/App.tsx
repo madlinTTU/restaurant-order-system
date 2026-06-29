@@ -1,5 +1,6 @@
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import { CartProvider } from '@/contexts/CartContext'
+import { Toaster } from '@/components/ui/sonner'
 import MenuPage from './pages/MenuPage'
 import KitchenPage from './pages/KitchenPage'
 import AdminPanel from './pages/AdminPanel'
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="users" element={<AdminUsersPage />} />
         </Route>
       </Routes>
+      <Toaster position="bottom-right" />
     </CartProvider>
   )
 }

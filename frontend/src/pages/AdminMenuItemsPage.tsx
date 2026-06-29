@@ -16,8 +16,10 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { toast } from 'sonner'
 import { useCategories, useMenuItems, useCreateMenuItem, useUpdateMenuItem, useDeleteMenuItem, useUpdateItemPositions } from '../hooks/useMenu.ts'
 import type { MenuItem, MenuItemRequest } from '../types/menu.ts'
+import ConfirmDialog from '../components/ConfirmDialog.tsx'
 import { getImageUploadUrl, uploadImageToS3 } from '../api/menu.ts'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -79,6 +81,7 @@ export default function AdminMenuItemsPage() {
   const [availableFilter, setAvailableFilter] = useState<'all' | 'available' | 'hidden'>('all')
   const [reorderMode, setReorderMode] = useState(false)
   const [reorderedGroups, setReorderedGroups] = useState<Record<string, MenuItem[]>>({})
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const queryClient = useQueryClient()
   const { data: categories } = useCategories()
@@ -131,13 +134,13 @@ export default function AdminMenuItemsPage() {
 
     if (editingId) {
       updateItem.mutate({ id: editingId, data: itemData }, {
-        onSuccess: async () => { await uploadImageIfSelected(editingId); closeForm() },
-        onError: e => alert(e.message),
+        onSuccess: async () => { await uploadImageIfSelected(editingId); closeForm(); toast.success('Item updated') },
+        onError: e => toast.error(e.message),
       })
     } else {
       createItem.mutate(itemData, {
-        onSuccess: async (created) => { await uploadImageIfSelected(created.id); closeForm() },
-        onError: e => alert(e.message),
+        onSuccess: async (created) => { await uploadImageIfSelected(created.id); closeForm(); toast.success('Item created') },
+        onError: e => toast.error(e.message),
       })
     }
   }
@@ -174,7 +177,10 @@ export default function AdminMenuItemsPage() {
   const handleSaveOrder = () => {
     const entries = Object.values(reorderedGroups)
       .flatMap(catItems => catItems.map((item, i) => ({ id: item.id, position: i })))
-    updatePositions.mutate(entries, { onSuccess: exitReorderMode })
+    updatePositions.mutate(entries, {
+      onSuccess: () => { exitReorderMode(); toast.success('Order saved') },
+      onError: e => toast.error(e.message),
+    })
   }
 
   const isPending = createItem.isPending || updateItem.isPending
@@ -375,7 +381,7 @@ export default function AdminMenuItemsPage() {
                                     <Button
                                       variant="destructive"
                                       size="sm"
-                                      onClick={() => { if (confirm('Delete this item?')) deleteItem.mutate(item.id) }}
+                                      onClick={() => setDeletingId(item.id)}
                                     >
                                       Delete
                                     </Button>
@@ -431,6 +437,21 @@ export default function AdminMenuItemsPage() {
           </>
         )}
       </CardContent>
+
+      <ConfirmDialog
+        open={deletingId !== null}
+        title="Delete item?"
+        description="This action cannot be undone."
+        isPending={deleteItem.isPending}
+        onCancel={() => setDeletingId(null)}
+        onConfirm={() => {
+          if (!deletingId) return
+          deleteItem.mutate(deletingId, {
+            onSuccess: () => { setDeletingId(null); toast.success('Item deleted') },
+            onError: e => { setDeletingId(null); toast.error(e.message) },
+          })
+        }}
+      />
     </Card>
   )
 }

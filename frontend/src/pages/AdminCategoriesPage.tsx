@@ -15,8 +15,10 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { toast } from 'sonner'
 import { useCategories, useCreateCategory, useDeleteCategory, useUpdateCategory, useUpdateCategoryPositions } from '../hooks/useMenu.ts'
 import type { MenuCategory } from '../types/menu.ts'
+import ConfirmDialog from '../components/ConfirmDialog.tsx'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -57,6 +59,7 @@ export default function AdminCategoriesPage() {
   const [search, setSearch] = useState('')
   const [reorderMode, setReorderMode] = useState(false)
   const [reorderedList, setReorderedList] = useState<MenuCategory[]>([])
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const { data: categories, isLoading, isError } = useCategories()
   const createCategory = useCreateCategory()
@@ -82,13 +85,13 @@ export default function AdminCategoriesPage() {
     e.preventDefault()
     if (editingId) {
       updateCategory.mutate({ id: editingId, data: form }, {
-        onSuccess: closeForm,
-        onError: e => alert(e.message),
+        onSuccess: () => { closeForm(); toast.success('Category updated') },
+        onError: e => toast.error(e.message),
       })
     } else {
       createCategory.mutate(form, {
-        onSuccess: closeForm,
-        onError: e => alert(e.message),
+        onSuccess: () => { closeForm(); toast.success('Category created') },
+        onError: e => toast.error(e.message),
       })
     }
   }
@@ -119,7 +122,10 @@ export default function AdminCategoriesPage() {
   const handleSaveOrder = () => {
     updatePositions.mutate(
       reorderedList.map((cat, i) => ({ id: cat.id, position: i })),
-      { onSuccess: exitReorderMode }
+      {
+        onSuccess: () => { exitReorderMode(); toast.success('Order saved') },
+        onError: e => toast.error(e.message),
+      }
     )
   }
 
@@ -225,7 +231,7 @@ export default function AdminCategoriesPage() {
                               <Button
                                 variant="destructive"
                                 size="sm"
-                                onClick={() => { if (confirm('Delete this category?')) deleteCategory.mutate(category.id) }}
+                                onClick={() => setDeletingId(category.id)}
                               >
                                 Delete
                               </Button>
@@ -261,6 +267,21 @@ export default function AdminCategoriesPage() {
           </>
         )}
       </CardContent>
+
+      <ConfirmDialog
+        open={deletingId !== null}
+        title="Delete category?"
+        description="This action cannot be undone."
+        isPending={deleteCategory.isPending}
+        onCancel={() => setDeletingId(null)}
+        onConfirm={() => {
+          if (!deletingId) return
+          deleteCategory.mutate(deletingId, {
+            onSuccess: () => { setDeletingId(null); toast.success('Category deleted') },
+            onError: e => { setDeletingId(null); toast.error(e.message) },
+          })
+        }}
+      />
     </Card>
   )
 }
