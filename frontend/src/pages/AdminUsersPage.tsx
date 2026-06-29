@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import * as React from 'react'
+import { toast } from 'sonner'
 import { useUsers, useCreateUser } from '../hooks/useUsers'
 import type { CreateUserRequest, Role } from '../types/user'
 import { Button } from '@/components/ui/button'
@@ -27,8 +28,8 @@ export default function AdminUsersPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     createUser.mutate(form, {
-      onSuccess: closeForm,
-      onError: (e) => alert(e.message),
+      onSuccess: () => { closeForm(); toast.success('User created') },
+      onError: e => toast.error(e.message),
     })
   }
 
