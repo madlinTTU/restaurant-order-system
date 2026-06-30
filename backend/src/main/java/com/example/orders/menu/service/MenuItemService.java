@@ -12,6 +12,8 @@ import com.example.orders.menu.repository.MenuCategoryRepository;
 import com.example.orders.menu.repository.MenuItemRepository;
 import com.example.orders.storage.StorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class MenuItemService {
   private final MenuItemMapper itemMapper;
   private final StorageService storageService;
 
+  @Cacheable("menu-items")
   public List<MenuItemResponse> getAll() {
     return itemRepository.findAllByOrderByCategoryIdAscPositionAsc().stream()
       .map(itemMapper::toResponse)
@@ -42,6 +45,7 @@ public class MenuItemService {
       .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + id));
   }
 
+  @CacheEvict(value = "menu-items", allEntries = true)
   @Transactional
   public MenuItemResponse create(MenuItemRequest request, UUID currentUserId) {
     MenuCategory category = findCategory(request.categoryId());
@@ -52,6 +56,7 @@ public class MenuItemService {
     return itemMapper.toResponse(itemRepository.save(entity));
   }
 
+  @CacheEvict(value = "menu-items", allEntries = true)
   @Transactional
   public MenuItemResponse update(UUID itemId, MenuItemRequest request, UUID currentUserId) {
     MenuItem item = itemRepository.findById(itemId)
@@ -62,6 +67,7 @@ public class MenuItemService {
     return itemMapper.toResponse(item);
   }
 
+  @CacheEvict(value = "menu-items", allEntries = true)
   @Transactional
   public void delete(UUID id) {
     if (!itemRepository.existsById(id)) {
@@ -70,6 +76,7 @@ public class MenuItemService {
     itemRepository.deleteById(id);
   }
 
+  @CacheEvict(value = "menu-items", allEntries = true)
   @Transactional
   public ImageUploadUrlResponse generateImageUploadUrl(UUID id, String contentType) {
     MenuItem item = itemRepository.findById(id)
@@ -83,6 +90,7 @@ public class MenuItemService {
     return new ImageUploadUrlResponse(uploadUrl);
   }
 
+  @CacheEvict(value = "menu-items", allEntries = true)
   @Transactional
   public void updatePositions(List<PositionEntry> entries) {
     Map<UUID, MenuItem> items = itemRepository.findAllById(
