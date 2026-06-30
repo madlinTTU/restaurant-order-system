@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -45,8 +46,13 @@ public class AuthController {
     @Operation(summary = "Logout and clear refresh token cookie")
     @ApiResponse(responseCode = "204", description = "Logged out successfully")
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
-        authService.logout(response);
+    public ResponseEntity<Void> logout(
+            HttpServletRequest request,
+            @CookieValue(name = "refresh_token", required = false) String refreshToken,
+            HttpServletResponse response) {
+        String header = request.getHeader("Authorization");
+        String accessToken = (header != null && header.startsWith("Bearer ")) ? header.substring(7) : null;
+        authService.logout(accessToken, refreshToken, response);
         return ResponseEntity.noContent().build();
     }
 

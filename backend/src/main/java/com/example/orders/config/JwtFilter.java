@@ -7,6 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,6 +22,7 @@ import java.util.List;
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final StringRedisTemplate redisTemplate;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -28,7 +30,7 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String token = extractToken(request);
 
-        if (token != null && jwtService.isTokenValid(token)) {
+        if (token != null && jwtService.isTokenValid(token) && !isBlacklisted(token)) {
             Claims claims = jwtService.extractClaims(token);
             String userId = claims.getSubject();
             String role = claims.get("role", String.class);
@@ -50,5 +52,10 @@ public class JwtFilter extends OncePerRequestFilter {
             return header.substring(7);
         }
         return null;
+    }
+
+    private boolean isBlacklisted(String token) {
+        String jti = jwtService.extractJti(token);
+        return Boolean.TRUE.equals(redisTemplate.hasKey("jwt:blacklist:" + jti));
     }
 }

@@ -64,6 +64,10 @@ public class JwtService {
         return extractClaims(token).getId();
     }
 
+    public long getRefreshTokenExpiration() {
+        return jwtProperties.getRefreshTokenExpiration();
+    }
+
     public long getRemainingTtlSeconds(String token) {
         Date expiration = extractClaims(token).getExpiration();
         long remaining = expiration.getTime() - System.currentTimeMillis();
