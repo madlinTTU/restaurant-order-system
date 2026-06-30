@@ -1,12 +1,18 @@
 package com.example.orders.order;
 
 import com.example.orders.TestFactory;
+import com.example.orders.auth.model.User;
+import com.example.orders.auth.repository.UserRepository;
 import com.example.orders.config.SecurityUtils;
 import com.example.orders.exception.ResourceNotFoundException;
 import com.example.orders.menu.model.MenuCategory;
 import com.example.orders.menu.model.MenuItem;
 import com.example.orders.menu.repository.MenuItemRepository;
+import com.example.orders.order.dto.AdminOrderResponse;
 import com.example.orders.order.dto.CreateOrderRequest;
+import com.example.orders.order.dto.OrderFilterRequest;
+import com.example.orders.order.dto.OrderFilterRequest.SortBy;
+import com.example.orders.order.dto.OrderFilterRequest.SortDir;
 import com.example.orders.order.dto.OrderResponse;
 import com.example.orders.order.event.OrderEvent;
 import com.example.orders.order.event.OrderEventProducer;
@@ -18,16 +24,25 @@ import com.example.orders.order.repository.OrderRepository;
 import com.example.orders.order.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,6 +54,8 @@ class OrderServiceTest {
   OrderEventRepository orderEventRepository;
   @Mock
   MenuItemRepository menuItemRepository;
+  @Mock
+  UserRepository userRepository;
   @Mock
   OrderMapper orderMapper;
   @Mock
@@ -269,5 +286,124 @@ class OrderServiceTest {
 
     assertThatThrownBy(() -> orderService.updateStatus(order.getId(), OrderStatus.PREPARING, userId))
       .isInstanceOf(IllegalArgumentException.class);
+  }
+
+
+  @Test
+  void getAdminOrders_withNoFilters_returnsAllOrdersWithEmails() {
+    UUID userId = UUID.randomUUID();
+    Order order = TestFactory.order(userId);
+    User user = TestFactory.user("customer@test.com");
+    user.setId(userId);
+    OrderResponse orderResponse = TestFactory.orderResponse(order);
+    OrderFilterRequest filters = new OrderFilterRequest(null, null, null, null, null, null);
+
+    when(orderRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of(order));
+    when(userRepository.findByIdIn(anySet())).thenReturn(List.of(user));
+    when(orderMapper.toResponse(order)).thenReturn(orderResponse);
+
+    List<AdminOrderResponse> result = orderService.getAdminOrders(filters);
+
+    assertThat(result).hasSize(1);
+    assertThat(result.getFirst().orderData()).isEqualTo(orderResponse);
+    assertThat(result.getFirst().customerEmail()).isEqualTo("customer@test.com");
+  }
+
+  @Test
+  void getAdminOrders_withEmailFilterMatchingUser_filtersCorrectly() {
+    UUID userId = UUID.randomUUID();
+    Order order = TestFactory.order(userId);
+    User user = TestFactory.user("john@test.com");
+    user.setId(userId);
+    OrderResponse orderResponse = TestFactory.orderResponse(order);
+    OrderFilterRequest filters = new OrderFilterRequest(null, "john", null, null, null, null);
+
+    when(userRepository.findIdsByEmailContainingIgnoreCase("john")).thenReturn(Set.of(userId));
+    when(orderRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of(order));
+    when(userRepository.findByIdIn(anySet())).thenReturn(List.of(user));
+    when(orderMapper.toResponse(order)).thenReturn(orderResponse);
+
+    List<AdminOrderResponse> result = orderService.getAdminOrders(filters);
+
+    assertThat(result).hasSize(1);
+    assertThat(result.getFirst().customerEmail()).isEqualTo("john@test.com");
+  }
+
+  @Test
+  void getAdminOrders_withEmailFilterMatchingNoUser_returnsEmptyWithoutQueryingOrders() {
+    OrderFilterRequest filters = new OrderFilterRequest(null, "notfound@test.com", null, null, null, null);
+
+    when(userRepository.findIdsByEmailContainingIgnoreCase("notfound@test.com")).thenReturn(Set.of());
+
+    List<AdminOrderResponse> result = orderService.getAdminOrders(filters);
+
+    assertThat(result).isEmpty();
+    verify(orderRepository, never()).findAll(any(Specification.class), any(Sort.class));
+  }
+
+  @Test
+  void getAdminOrders_withBlankEmailFilter_doesNotCallUserRepository() {
+    OrderFilterRequest filters = new OrderFilterRequest(null, "  ", null, null, null, null);
+
+    when(orderRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of());
+
+    orderService.getAdminOrders(filters);
+
+    verify(userRepository, never()).findIdsByEmailContainingIgnoreCase(any());
+  }
+
+  @Test
+  void getAdminOrders_whenUserIdNotFoundForOrder_throwsResourceNotFoundException() {
+    UUID userId = UUID.randomUUID();
+    Order order = TestFactory.order(userId);
+    OrderResponse orderResponse = TestFactory.orderResponse(order);
+    OrderFilterRequest filters = new OrderFilterRequest(null, null, null, null, null, null);
+
+    when(orderRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of(order));
+    when(userRepository.findByIdIn(anySet())).thenReturn(List.of());
+    when(orderMapper.toResponse(order)).thenReturn(orderResponse);
+
+    assertThatThrownBy(() -> orderService.getAdminOrders(filters))
+      .isInstanceOf(ResourceNotFoundException.class)
+      .hasMessageContaining(userId.toString());
+  }
+
+  @Test
+  void getAdminOrders_withEmptyOrderList_returnsEmptyWithoutFetchingUsers() {
+    OrderFilterRequest filters = new OrderFilterRequest(null, null, null, null, null, null);
+
+    when(orderRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of());
+
+    List<AdminOrderResponse> result = orderService.getAdminOrders(filters);
+
+    assertThat(result).isEmpty();
+    verify(userRepository, never()).findByIdIn(any());
+  }
+
+  @ParameterizedTest
+  @MethodSource("sortCases")
+  void getAdminOrders_sortsBy(SortBy sortBy, SortDir sortDir, String expectedField, Direction expectedDirection) {
+    OrderFilterRequest filters = new OrderFilterRequest(null, null, null, null, sortBy, sortDir);
+    ArgumentCaptor<Sort> sortCaptor = ArgumentCaptor.forClass(Sort.class);
+
+    when(orderRepository.findAll(any(Specification.class), sortCaptor.capture())).thenReturn(List.of());
+
+    orderService.getAdminOrders(filters);
+
+    Sort.Order order = sortCaptor.getValue().getOrderFor(expectedField);
+    assertThat(order).isNotNull();
+    assertThat(order.getDirection()).isEqualTo(expectedDirection);
+  }
+
+  static Stream<Arguments> sortCases() {
+    return Stream.of(
+      Arguments.of(null,                    null,          "createdAt",  Direction.DESC),
+      Arguments.of(SortBy.CREATED_AT,       SortDir.ASC,   "createdAt",  Direction.ASC),
+      Arguments.of(SortBy.CREATED_AT,       SortDir.DESC,  "createdAt",  Direction.DESC),
+      Arguments.of(SortBy.LAST_MODIFIED_AT, SortDir.ASC,   "modifiedAt", Direction.ASC),
+      Arguments.of(SortBy.LAST_MODIFIED_AT, SortDir.DESC,  "modifiedAt", Direction.DESC),
+      Arguments.of(SortBy.TOTAL_PRICE,      SortDir.ASC,   "totalPrice", Direction.ASC),
+      Arguments.of(SortBy.TOTAL_PRICE,      SortDir.DESC,  "totalPrice", Direction.DESC)
+    );
   }
 }

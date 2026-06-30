@@ -232,7 +232,8 @@ public class TestFactory {
                 items,
                 order.getTotalPrice(),
                 order.getNotes(),
-                order.getCreatedAt()
+                order.getCreatedAt(),
+                order.getModifiedAt()
         );
     }
 }

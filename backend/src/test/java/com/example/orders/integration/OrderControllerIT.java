@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -259,5 +260,136 @@ class OrderControllerIT extends BaseIntegrationTest {
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(request)))
       .andExpect(status().isNotFound());
+  }
+
+
+  // --- GET /api/orders/admin ---
+
+  @Test
+  void getAdminOrders_returnsOrdersWithCorrectStructure() throws Exception {
+    createOrder(customerToken);
+
+    mockMvc.perform(get("/api/orders/admin")
+        .header("Authorization", "Bearer " + adminToken))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.length()").value(1))
+      .andExpect(jsonPath("$[0].orderData.id").exists())
+      .andExpect(jsonPath("$[0].orderData.status").value("PLACED"))
+      .andExpect(jsonPath("$[0].orderData.totalPrice").value(9.99))
+      .andExpect(jsonPath("$[0].orderData.createdAt").exists())
+      .andExpect(jsonPath("$[0].orderData.modifiedAt").exists())
+      .andExpect(jsonPath("$[0].customerEmail").value("customer@test.com"));
+  }
+
+  @Test
+  void getAdminOrders_forbiddenWhenNoToken() throws Exception {
+    mockMvc.perform(get("/api/orders/admin"))
+      .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void getAdminOrders_forbiddenWhenCustomer() throws Exception {
+    mockMvc.perform(get("/api/orders/admin")
+        .header("Authorization", "Bearer " + customerToken))
+      .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void getAdminOrders_forbiddenWhenKitchen() throws Exception {
+    mockMvc.perform(get("/api/orders/admin")
+        .header("Authorization", "Bearer " + kitchenToken))
+      .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void getAdminOrders_filterByMatchingStatus_returnsOrders() throws Exception {
+    createOrder(customerToken);
+
+    mockMvc.perform(get("/api/orders/admin")
+        .header("Authorization", "Bearer " + adminToken)
+        .param("statuses", "PLACED"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.length()").value(1));
+  }
+
+  @Test
+  void getAdminOrders_filterByNonMatchingStatus_returnsEmpty() throws Exception {
+    createOrder(customerToken);
+
+    mockMvc.perform(get("/api/orders/admin")
+        .header("Authorization", "Bearer " + adminToken)
+        .param("statuses", "DELIVERED"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.length()").value(0));
+  }
+
+  @Test
+  void getAdminOrders_filterByMultipleStatuses_returnsMatchingOrders() throws Exception {
+    createOrder(customerToken);
+
+    mockMvc.perform(get("/api/orders/admin")
+        .header("Authorization", "Bearer " + adminToken)
+        .param("statuses", "PLACED", "CONFIRMED"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.length()").value(1));
+  }
+
+  @Test
+  void getAdminOrders_filterByEmailSearch_returnsMatchingOrders() throws Exception {
+    createOrder(customerToken);
+
+    mockMvc.perform(get("/api/orders/admin")
+        .header("Authorization", "Bearer " + adminToken)
+        .param("userEmailSearch", "customer"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.length()").value(1))
+      .andExpect(jsonPath("$[0].customerEmail").value("customer@test.com"));
+  }
+
+  @Test
+  void getAdminOrders_filterByEmailSearch_returnsEmptyWhenNoMatch() throws Exception {
+    createOrder(customerToken);
+
+    mockMvc.perform(get("/api/orders/admin")
+        .header("Authorization", "Bearer " + adminToken)
+        .param("userEmailSearch", "notexistent"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.length()").value(0));
+  }
+
+  @Test
+  void getAdminOrders_filterByDateFrom_today_returnsOrders() throws Exception {
+    createOrder(customerToken);
+    String today = LocalDate.now().toString();
+
+    mockMvc.perform(get("/api/orders/admin")
+        .header("Authorization", "Bearer " + adminToken)
+        .param("dateFrom", today))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.length()").value(1));
+  }
+
+  @Test
+  void getAdminOrders_filterByDateTill_yesterday_returnsEmpty() throws Exception {
+    createOrder(customerToken);
+    String yesterday = LocalDate.now().minusDays(1).toString();
+
+    mockMvc.perform(get("/api/orders/admin")
+        .header("Authorization", "Bearer " + adminToken)
+        .param("dateTill", yesterday))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.length()").value(0));
+  }
+
+  @Test
+  void getAdminOrders_returnsOrdersForAllCustomers() throws Exception {
+    createOrder(customerToken);
+    String otherToken = registerCustomerAndGetToken("other@test.com", "password123");
+    createOrder(otherToken);
+
+    mockMvc.perform(get("/api/orders/admin")
+        .header("Authorization", "Bearer " + adminToken))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.length()").value(2));
   }
 }
