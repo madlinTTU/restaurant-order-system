@@ -23,5 +23,7 @@ public record OrderResponse(
         @Schema(description = "Special instructions for the kitchen", example = "No onions please")
         String notes,
         @Schema(description = "Order creation timestamp")
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        @Schema(description = "Last modification timestamp")
+        OffsetDateTime modifiedAt
 ) {}

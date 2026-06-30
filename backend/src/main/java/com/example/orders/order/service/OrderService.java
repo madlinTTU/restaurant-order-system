@@ -4,10 +4,18 @@ import com.example.orders.config.SecurityUtils;
 import com.example.orders.exception.ResourceNotFoundException;
 import com.example.orders.menu.model.MenuItem;
 import com.example.orders.menu.repository.MenuItemRepository;
+import com.example.orders.auth.model.User;
+import com.example.orders.auth.repository.UserRepository;
+import com.example.orders.order.dto.AdminOrderResponse;
 import com.example.orders.order.dto.CreateOrderRequest;
+import com.example.orders.order.dto.OrderFilterRequest;
+import com.example.orders.order.dto.OrderFilterRequest.SortBy;
+import com.example.orders.order.dto.OrderFilterRequest.SortDir;
+import org.springframework.data.domain.Sort.Direction;
 import com.example.orders.order.dto.OrderItemRequest;
 import com.example.orders.order.dto.OrderResponse;
 import com.example.orders.order.event.OrderEvent;
+import com.example.orders.order.specification.OrderSpecification;
 import com.example.orders.order.event.OrderEventPayload;
 import com.example.orders.order.event.OrderEventProducer;
 import com.example.orders.order.event.OrderStatusEvent;
@@ -21,9 +29,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -36,6 +49,7 @@ public class OrderService {
   private final OrderRepository orderRepository;
   private final OrderEventRepository orderEventRepository;
   private final MenuItemRepository menuItemRepository;
+  private final UserRepository userRepository;
   private final OrderMapper orderMapper;
   private final SecurityUtils securityUtils;
   private final OrderEventProducer orderEventProducer;
@@ -59,15 +73,15 @@ public class OrderService {
 
   private void saveAndPublishEvent(Order order, OrderStatus status) {
     OrderEvent savedEvent = orderEventRepository.save(OrderEvent.builder()
-        .orderId(order.getId())
-        .status(status)
-        .build());
+      .orderId(order.getId())
+      .status(status)
+      .build());
     orderEventProducer.publish(new OrderStatusEvent(
-        savedEvent.getId(),
-        order.getUserId(),
-        status,
-        savedEvent.getCreatedAt().toInstant(),
-        new OrderEventPayload(order.getId(), order.getTotalPrice(), order.getNotes())
+      savedEvent.getId(),
+      order.getUserId(),
+      status,
+      savedEvent.getCreatedAt().toInstant(),
+      new OrderEventPayload(order.getId(), order.getTotalPrice(), order.getNotes())
     ));
   }
 
@@ -108,11 +122,62 @@ public class OrderService {
     }
   }
 
+  public List<AdminOrderResponse> getAdminOrders(OrderFilterRequest filters) {
+    Set<UUID> userIds = resolveUserIdsByEmail(filters.userEmailSearch());
+    if (userIds != null && userIds.isEmpty()) return Collections.emptyList();
+
+    Specification<Order> spec = Specification
+      .where(OrderSpecification.hasStatuses(filters.statuses()))
+      .and(OrderSpecification.hasUserIds(userIds))
+      .and(OrderSpecification.dateFrom(filters.dateFrom()))
+      .and(OrderSpecification.dateTill(filters.dateTill()));
+
+    List<Order> orders = orderRepository.findAll(spec, buildSort(filters.sortBy(), filters.sortDir()));
+
+    return toAdminResponses(orders);
+  }
+
+  private List<AdminOrderResponse> toAdminResponses(List<Order> orders) {
+    if (orders.isEmpty()) return Collections.emptyList();
+    Set<UUID> userIds = orders.stream().map(Order::getUserId).collect(Collectors.toSet());
+    Map<UUID, String> emailByUserId = userRepository.findByIdIn(userIds).stream()
+      .collect(Collectors.toMap(User::getId, User::getEmail));
+
+    return orders.stream()
+      .map(order -> new AdminOrderResponse(
+        orderMapper.toResponse(order),
+        getEmailOrThrow(emailByUserId, order)
+      ))
+      .toList();
+  }
+
+  private String getEmailOrThrow(Map<UUID, String> emailByUserId, Order order) {
+    String email = emailByUserId.get(order.getUserId());
+    if (email == null) throw new ResourceNotFoundException("User not found: " + order.getUserId());
+    return email;
+  }
+
+  private Set<UUID> resolveUserIdsByEmail(String emailSearch) {
+    if (emailSearch == null || emailSearch.isBlank()) return null;
+    return userRepository.findIdsByEmailContainingIgnoreCase(emailSearch);
+  }
+
+  private Sort buildSort(SortBy sortBy, SortDir sortDir) {
+    String field = switch (sortBy != null ? sortBy : SortBy.CREATED_AT) {
+      case CREATED_AT -> "createdAt";
+      case LAST_MODIFIED_AT -> "modifiedAt";
+      case TOTAL_PRICE -> "totalPrice";
+    };
+
+    Direction sortDirection = sortDir == SortDir.ASC ? Direction.ASC : Direction.DESC;
+    return Sort.by(sortDirection, field);
+  }
+
   public List<OrderResponse> getActiveOrders() {
     List<OrderStatus> activeStatuses = List.of(OrderStatus.PLACED, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY);
     return orderRepository.findAllByOrderStatusIn(activeStatuses).stream()
-        .map(orderMapper::toResponse)
-        .toList();
+      .map(orderMapper::toResponse)
+      .toList();
   }
 
   public List<OrderResponse> getOrders(UUID currentUserId) {

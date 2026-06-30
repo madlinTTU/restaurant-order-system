@@ -1,6 +1,8 @@
 package com.example.orders.order.controller;
 
+import com.example.orders.order.dto.AdminOrderResponse;
 import com.example.orders.order.dto.CreateOrderRequest;
+import com.example.orders.order.dto.OrderFilterRequest;
 import com.example.orders.order.dto.OrderResponse;
 import com.example.orders.order.dto.UpdateOrderStatusRequest;
 import com.example.orders.order.service.OrderService;
@@ -8,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springdoc.core.annotations.ParameterObject;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -43,6 +46,15 @@ public class OrderController {
     @GetMapping
     public List<OrderResponse> getOrders(@AuthenticationPrincipal String userId) {
         return orderService.getOrders(UUID.fromString(userId));
+    }
+
+    @Operation(summary = "Get all orders with filters (admin only)")
+    @ApiResponse(responseCode = "200", description = "List of orders")
+    @ApiResponse(responseCode = "403", description = "Admin role required", content = @Content)
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<AdminOrderResponse> getAdminOrders(@ParameterObject @ModelAttribute OrderFilterRequest filter) {
+        return orderService.getAdminOrders(filter);
     }
 
     @Operation(summary = "Get all active orders (for kitchen staff)")
