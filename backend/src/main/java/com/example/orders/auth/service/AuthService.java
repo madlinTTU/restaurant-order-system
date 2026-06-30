@@ -11,6 +11,7 @@ import com.example.orders.exception.InvalidTokenException;
 import com.example.orders.exception.UserAlreadyExistsException;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +30,7 @@ public class AuthService {
     private final UserMapper userMapper;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final StringRedisTemplate redisTemplate;
 
     @Transactional
     public TokenResponse register(RegisterRequest request, HttpServletResponse response) {
@@ -48,7 +51,15 @@ public class AuthService {
         return issueTokens(user, response);
     }
 
-    public void logout(HttpServletResponse response) {
+    public void logout(String accessToken, String refreshToken, HttpServletResponse response) {
+        if (accessToken != null && jwtService.isTokenValid(accessToken)) {
+            String jti = jwtService.extractJti(accessToken);
+            long ttl = jwtService.getRemainingTtlSeconds(accessToken);
+            redisTemplate.opsForValue().set("jwt:blacklist:" + jti, "1", Duration.ofSeconds(ttl));
+        }
+        if (refreshToken != null) {
+            redisTemplate.delete("jwt:refresh:" + refreshToken);
+        }
         clearRefreshCookie(response);
     }
 
@@ -59,8 +70,12 @@ public class AuthService {
         if (!jwtService.isTokenValid(refreshToken)) {
             throw new InvalidTokenException("Refresh token invalid or expired");
         }
-        String userId = jwtService.extractSubject(refreshToken);
-        User user = userRepository.findById(java.util.UUID.fromString(userId))
+        String storedUserId = redisTemplate.opsForValue().get("jwt:refresh:" + refreshToken);
+        if (storedUserId == null) {
+            throw new InvalidTokenException("Refresh token not found");
+        }
+        redisTemplate.delete("jwt:refresh:" + refreshToken);
+        User user = userRepository.findById(UUID.fromString(storedUserId))
                 .orElseThrow(() -> new InvalidTokenException("User not found"));
         return issueTokens(user, response);
     }
@@ -68,6 +83,11 @@ public class AuthService {
     private TokenResponse issueTokens(User user, HttpServletResponse response) {
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
+        redisTemplate.opsForValue().set(
+                "jwt:refresh:" + refreshToken,
+                user.getId().toString(),
+                Duration.ofSeconds(jwtService.getRefreshTokenExpiration())
+        );
         setRefreshCookie(response, refreshToken);
         return new TokenResponse(accessToken, "Bearer");
     }
