@@ -7,6 +7,7 @@ import AdminPanel from './pages/AdminPanel'
 import AdminCategoriesPage from './pages/AdminCategoriesPage'
 import AdminMenuItemsPage from './pages/AdminMenuItemsPage'
 import AdminUsersPage from './pages/AdminUsersPage'
+import AdminOrdersPage from './pages/AdminOrdersPage'
 import LoginPage from './pages/LoginPage'
 import MyOrdersPage from './pages/MyOrdersPage'
 import MenuItemPage from './pages/MenuItemPage'
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="categories" element={<AdminCategoriesPage />} />
           <Route path="items" element={<AdminMenuItemsPage />} />
           <Route path="users" element={<AdminUsersPage />} />
+          <Route path="orders" element={<AdminOrdersPage />} />
         </Route>
       </Routes>
       <Toaster position="bottom-right" />

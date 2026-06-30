@@ -16,6 +16,7 @@ export default function AdminPanel() {
         <NavLink to="categories" className={tabClass}>Categories</NavLink>
         <NavLink to="items" className={tabClass}>Items</NavLink>
         <NavLink to="users" className={tabClass}>Users</NavLink>
+        <NavLink to="orders" className={tabClass}>Orders</NavLink>
       </div>
 
       <Outlet />

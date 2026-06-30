@@ -24,6 +24,7 @@ export interface OrderResponse {
   totalPrice: number
   notes: string | null
   createdAt: string
+  modifiedAt: string
 }
 
 export interface OrderStatusEvent {
