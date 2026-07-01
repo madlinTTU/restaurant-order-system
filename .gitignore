@@ -21,9 +21,6 @@ dist/
 *.local
 
 # ===== Environment / Secrets =====
-.env
-.env.*
-!.env.example
 application-prod.yml
 application-local.yml
 
