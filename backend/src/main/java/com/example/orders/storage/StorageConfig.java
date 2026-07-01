@@ -41,7 +41,7 @@ public class StorageConfig {
                 .region(Region.of(props.region()))
                 .credentialsProvider(credentials())
                 .serviceConfiguration(s3Configuration())
-                .endpointOverride(URI.create(props.endpoint()))
+                .endpointOverride(URI.create(props.publicEndpoint()))
                 .build();
     }
 

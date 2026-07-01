@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ghcr.io/madlinttu/restaurant-order-system-backend:${{ github.ref_name }}
+            ghcr.io/madlinttu/restaurant-order-system-backend:latest
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ghcr.io/madlinttu/restaurant-order-system-frontend:${{ github.ref_name }}
+            ghcr.io/madlinttu/restaurant-order-system-frontend:latest
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: docker-compose.demo.yml
+          body: |
+            ## Running the demo
+
+            ```bash
+            docker compose -f docker-compose.demo.yml up
+            ```
+
+            Open http://localhost:3000
+
+            ## Demo accounts
+
+            | Email | Password | Role |
+            |---|---|---|
+            | admin@demo.com | admin123 | Admin |
+            | kitchen@demo.com | kitchen123 | Kitchen |
+            | customer@demo.com | customer123 | Customer |

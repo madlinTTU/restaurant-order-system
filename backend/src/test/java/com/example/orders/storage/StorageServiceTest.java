@@ -30,6 +30,7 @@ class StorageServiceTest {
     StorageProperties props = new StorageProperties(
             "test-bucket",
             "http://localhost:9000",
+            "http://localhost:9000",
             "us-east-1",
             "minioadmin",
             "minioadmin",
