@@ -34,7 +34,7 @@ public class StorageService {
     }
 
     public String buildPublicUrl(String key) {
-        return props.endpoint() + "/" + props.bucket() + "/" + key;
+        return props.publicEndpoint() + "/" + props.bucket() + "/" + key;
     }
 
     public String generatePresignedUploadUrl(String key) {
@@ -55,7 +55,7 @@ public class StorageService {
     }
 
     public String extractKey(String imageUrl) {
-        String prefix = props.endpoint() + "/" + props.bucket() + "/";
+        String prefix = props.publicEndpoint() + "/" + props.bucket() + "/";
         return imageUrl.replace(prefix, "");
     }
 }
